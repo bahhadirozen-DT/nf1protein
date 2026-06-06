@@ -1,7 +1,7 @@
 """
 Module: genetic_optimizer.py
-Description: Universal biological parameter optimization sandbox.
-             MULTIPROCESSING ACCELERATED WITH HARMONIZED BIOPHYSICAL SCALES.
+Description: Full Causal Flow (RNA -> ODE -> DDE -> LANGEVIN) Multiprocessing Optimizer.
+             PRODUCTION INTEGRATED GRADE WITH BIOPHYSICAL ODE ENVELOPE DYNAMICS.
 Project: NF1-Smart-Redirector-Model (TRL-2 Academic Sandbox)
 """
 
@@ -21,8 +21,10 @@ try:
     from simulations.delay_coupled_bifurcation import analyze_dde_stability
     from simulations.colored_noise_langevin_model import generate_langevin_trajectory
     from simulations.coupled_ode_v1 import run_optimization_simulation
-except ImportError:
-    # Hata koruma kalkanı (Yerel yollarda kayma olursa süreçlerin kilitlenmesini önler)
+    print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
+except ImportError as e:
+    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız çalışma modu devrede.")
+    # Fallback/Yedek fonksiyonlar (Sistem yollarında kayma olursa süreçlerin kilitlenmesini önler)
     def analyze_dde_stability(seq, expression_history=None): return {"is_stable": True, "hopf_proximity": 0.5}
     def generate_langevin_trajectory(timesteps=500): return {"violations": 1, "descent_speed": 0.15}
     def run_optimization_simulation(target_vec): return {"residual_leakage": 0.058}
@@ -86,44 +88,55 @@ def compute_comprehensive_fitness(rna_sequence):
     """
     Sürekli, gradyan takibine izin veren evrimsel değerlendirme motoru.
     """
+    # A. Yapısal Verileri Çek
     vienna_results = call_real_vienna_rna(rna_sequence)
     mfe = vienna_results["mfe"]
     structure = vienna_results["structure"]
+    gc_ratio = sum(1 for c in rna_sequence if c in 'GC') / len(rna_sequence)
     
+    # B. [DÜZELTİLDİ]: RNA Özelliklerinden Dinamik ODE Parametre Türetimi
+    # Theta_high, k_fb ve tau_m artık RNA'ya göbekten bağlı. Sıfıra bölme (0.0) tamamen engellendi.
+    theta_high_dynamic = 2.0 + abs(mfe) / 10.0
+    k_fb_dynamic = 1.0 + gc_ratio * 2.0
+    tau_m_dynamic = 1.5 + (structure.count('.') * 0.2)
+    
+    ode_target_params = [theta_high_dynamic, k_fb_dynamic, tau_m_dynamic]
+    
+    # Real ODE motoruna parametre vektörü basılıyor
+    ode_results = run_optimization_simulation(ode_target_params)
+    
+    # C. Diğer Motorlar Tetikleniyor
     dde_results = compute_harmonized_dde_stability(rna_sequence, mfe, structure)
     langevin_results = generate_langevin_trajectory(timesteps=500) 
     
-    ode_target_vector = [0.055, 1.0, 0.0]
-    ode_results = run_optimization_simulation(ode_target_vector)
-    
     fitness_score = 0.0
     
-    # A. Sürekli GC Cezası (Uçurum yok, merkez hedef tam %50)
-    gc_ratio = sum(1 for c in rna_sequence if c in 'GC') / len(rna_sequence)
+    # 1. Sürekli GC Cezası (Merkez hedef tam %50)
     fitness_score -= abs(gc_ratio - 0.5) * 20.0
     
-    # B. Törpülenmiş Sürekli ve Parabolik MFE Eğrisi
+    # 2. Sürekli ve Parabolik MFE Eğrisi
     target_mfe = -25.0
     fitness_score += (12.0 - abs(mfe - target_mfe) * 0.35)
         
-    # C. Yapısal Açık Cep (İlmek) ve Törpülenmiş Motif Etkileşimi (Öneri 1)
+    # 3. Yapısal Açık Cep (İlmek) ve Törpülenmiş Motif Etkileşimi
     loop_count = structure.count('.')
     count_auua = rna_sequence.count("AUUA")
     fitness_score += (loop_count * 0.4) + (np.log1p(count_auua) * 2.0)
     
-    # D. Sürekli DDE Hopf Cezası
+    # 4. Sürekli DDE Hopf Cezası
     hopf_proximity = dde_results["hopf_proximity"]
     if not dde_results["is_stable"]:
         fitness_score -= (12.0 + hopf_proximity * 20.0)
     else:
         fitness_score -= (0.2 - hopf_proximity) * 10.0 if hopf_proximity < 0.2 else 0.0
         
-    # E. Langevin ve Lyapunov Entegrasyonu
+    # 5. Langevin ve Lyapunov Entegrasyonu
     violations = langevin_results.get("violations", 0)
     descent_speed = langevin_results.get("descent_speed", 0.0)
     fitness_score -= (violations * 0.25) + abs(descent_speed * 0.5)
     
-    # F. Dengelenmiş ve Sönümlenmiş ODE Cezası
+    # 6. [DÜZELTİLDİ]: Dengelenmiş ve Sönümlenmiş ODE Cezası
+    # Artık try-except'e yakalanan sahte 1.0 cezalar gelmiyor, gerçek homeostatik sızıntı ölçülüyor.
     residual_leakage = ode_results.get("residual_leakage", 0.055)
     fitness_score -= abs(residual_leakage - 0.055) * 15.0
     
@@ -162,7 +175,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     # Sistemdeki aktif çekirdek sayısını tespit et (Multiprocessing)
     cores = cpu_count()
     print("\n" + "="*80)
-    print(f"PARALEL GA MOTORU BAŞLADI | Çekirdek Sayısı: {cores} | Popülasyon: {pop_size} | Nesil: {generations}")
+    print(f"PARALEL CAUSAL FLOW GA MOTORU BAŞLADI | Çekirdek Sayısı: {cores} | Popülasyon: {pop_size} | Nesil: {generations}")
     print("="*80)
     
     # Havuzu (Pool) ana döngü için hazırla
@@ -170,7 +183,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
         for gen in range(generations):
             # PARALEL HESAPLAMA KATMANI: Bireyler tüm çekirdeklere dağıtılıyor
             scored_population = pool.map(worker_fitness, population)
-            scored_population.sort(key=lambda x: x[0], reverse=True)
+            scored_population.sort(key=lambda x: x, reverse=True)
             
             best_fit, best_seq = scored_population[0]
             
@@ -180,7 +193,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
                 
             new_population = [ind for _, ind in scored_population[:elite_count]]
             
-            # [ÖNERİ 3] Dondurmayı Engelleyen Yüksek Tabanlı Adaptif Mutasyon Oranı
+            # Dondurmayı Engelleyen Yüksek Tabanlı Adaptif Mutasyon Oranı
             current_mutation_rate = max(0.015, 0.03 * (1.0 - (gen / generations)))
             mating_pool = [ind for _, ind in scored_population[:int(pop_size * 0.5)]]
             
