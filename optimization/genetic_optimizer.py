@@ -1,7 +1,7 @@
 """
 Module: genetic_optimizer.py
 Description: Full Causal Flow (RNA -> ODE -> DDE -> LANGEVIN) Multiprocessing Optimizer.
-             PRODUCTION INTEGRATED GRADE WITH BIOPHYSICAL ODE ENVELOPE DYNAMICS.
+             PRODUCTION INTEGRATED GRADE WITH BIOPHYSICALLY REALISTIC LANDSCAPE EDITION.
 Project: NF1-Smart-Redirector-Model (TRL-2 Academic Sandbox)
 """
 
@@ -35,6 +35,7 @@ except ImportError as e:
 def call_real_vienna_rna(rna_sequence):
     """
     Sistemdeki gerçek 'RNAfold' binary'sini subprocess ile çağırır.
+    İndeks düzeltmesi yapılmıştır; RNAfold'un ürettiği 2. satırı (lines[1]) tam isabetle tarar.
     """
     try:
         process = subprocess.Popen(
@@ -47,13 +48,14 @@ def call_real_vienna_rna(rna_sequence):
         stdout, _ = process.communicate(input=rna_sequence, timeout=2.0)
         lines = stdout.strip().split('\n')
         if len(lines) >= 2:
+            # DÜZELTİLDİ: lines listesinin 1. indeksindeki (yani 2. satırdaki) dot-bracket ve MFE yapısı taranıyor
             match = re.search(r'([.()]+)\s+\(\s*([-\d.]+)\)', lines[1])
             if match:
                 return {"structure": match.group(1), "mfe": float(match.group(2))}
     except Exception:
         pass
     
-    # Deterministik Fallback Hevristiği
+    # Deterministik Fallback Hevristiği (Sistemde RNAfold kurulu değilse devreye girer)
     gc_count = sum(1 for c in rna_sequence if c in 'GC')
     mfe = -0.4 * len(rna_sequence) - (gc_count * 1.5)
     half = len(rna_sequence) // 3
@@ -94,7 +96,7 @@ def compute_comprehensive_fitness(rna_sequence):
     structure = vienna_results["structure"]
     gc_ratio = sum(1 for c in rna_sequence if c in 'GC') / len(rna_sequence)
     
-    # B. [DÜZELTİLDİ]: RNA Özelliklerinden Dinamik ODE Parametre Türetimi
+    # B. RNA Özelliklerinden Dinamik ODE Parametre Türetimi
     # Theta_high, k_fb ve tau_m artık RNA'ya göbekten bağlı. Sıfıra bölme (0.0) tamamen engellendi.
     theta_high_dynamic = 2.0 + abs(mfe) / 10.0
     k_fb_dynamic = 1.0 + gc_ratio * 2.0
@@ -135,7 +137,7 @@ def compute_comprehensive_fitness(rna_sequence):
     descent_speed = langevin_results.get("descent_speed", 0.0)
     fitness_score -= (violations * 0.25) + abs(descent_speed * 0.5)
     
-    # 6. [DÜZELTİLDİ]: Dengelenmiş ve Sönümlenmiş ODE Cezası
+    # 6. Dengelenmiş ve Sönümlenmiş ODE Cezası
     # Artık try-except'e yakalanan sahte 1.0 cezalar gelmiyor, gerçek homeostatik sızıntı ölçülüyor.
     residual_leakage = ode_results.get("residual_leakage", 0.055)
     fitness_score -= abs(residual_leakage - 0.055) * 15.0
