@@ -1,7 +1,19 @@
+"""
+Module: genetic_optimizer.py
+Description: Sequence-specific biological parameter exploration using a genetic algorithm.
+Optimizes RNA sequences by combining stochastic Langevin dynamics and continuous ODE trajectories.
+"""
 import random
 import numpy as np
+import sys
+import os
+
+# Üst dizindeki modüllere erişim sağlamak için yol tanımı
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from bridge_models.evidence_weighted_calibration import EvidenceWeightedCalibration
 from simulations.colored_noise_langevin_model import ColoredNoiseLangevinModel
+from simulations.coupled_ode_v1 import run_optimization_simulation
 
 class RNAGeneticOptimizer:
     def __init__(self, sequence_length=30, pop_size=20, mutation_rate=0.06):
@@ -12,57 +24,52 @@ class RNAGeneticOptimizer:
         self.calibration_bridge = EvidenceWeightedCalibration()
         self.population = [self._generate_random_rna() for _ in range(self.pop_size)]
         
-        # Computes the target equilibrium dynamically to eliminate hardcoded magic numbers
-        # Resolves the unique real root of the potential tilting cubic equation: x^3 - 2.3x + 1.9 = 0
+        # Matematiksel kararlı durum eşiği (Cubic root: x^3 - 2.3x + 1.9 = 0)
         cubic_coeffs = [1.0, 0.0, -2.3, 1.9]
         all_roots = np.roots(cubic_coeffs)
         real_roots = all_roots[np.isreal(all_roots)].real
-        self.target_equilibrium = float(real_roots[0]) # Yields exactly ~ -1.81562
-
+        self.target_equilibrium = float(real_roots[0]) # ~ -1.81562
+        
     def _generate_random_rna(self):
-        return ''.join(random.choice(self.nucleotides) for _ in range(self.sequence_length))
-
+        return ''. join(random.choice(self.nucleotides) for _ in range(self.sequence_length))
+        
     def predict_structural_metrics(self, rna_sequence):
         """
         HEURISTIC BINDING PROXY GENERATOR (TRL-2 Sandbox Standard):
         Maps raw nucleotide sequences into phenomenological parameters using rule-based scoring.
-        Incorporates sequence-dependent stacking motif metrics and a kaba secondary structure proxy.
         """
         gc_content = (rna_sequence.count('G') + rna_sequence.count('C')) / len(rna_sequence)
         
-        # 1. Sequence-Dependent Stacking Motif Rules
+        # 1. Diziye Bağlı İstifleme (Stacking Motif) Kuralları
         stacking_pairs = rna_sequence.count('GC') + rna_sequence.count('CG')
         homopolymer_penalty = rna_sequence.count('AAAA') + rna_sequence.count('UUUU') + rna_sequence.count('GGGG')
         
-        # 2. Secondary Structure Proxy (Incorporating Watson-Crick and G-U Wobble Pairs)
+        # 2. İkincil Yapı Proksisi (Watson-Crick ve G-U Wobble Çiftleri)
         half = self.sequence_length // 2
         first_half = rna_sequence[:half]
         second_half_rev = rna_sequence[half:][::-1]
-        
         complementary_matches = 0
+        
         for b1, b2 in zip(first_half, second_half_rev):
-            # Standard Watson-Crick Base Pairing
             if (b1 == 'A' and b2 == 'U') or (b1 == 'U' and b2 == 'A') or \
                (b1 == 'G' and b2 == 'C') or (b1 == 'C' and b2 == 'G'):
                 complementary_matches += 1.0
-            # G-U Wobble Base Pairing Entegrasyonu (Referee Review Update)
             elif (b1 == 'G' and b2 == 'U') or (b1 == 'U' and b2 == 'G'):
-                complementary_matches += 0.5  # Dynamic tracking with partial thermodynamic weight
+                complementary_matches += 0.5 # G-U Wobble kısmi termodinamik ağırlığı
                 
-        # Structural integration score aggregation
         motif_score = (stacking_pairs * 4.0) + (complementary_matches * 3.0) - (homopolymer_penalty * 8.0)
         
-        # Heuristic Proxies (Dürüst İsimlendirme: Safe from empirical overclaims)
         heuristic_binding_proxy = -40.0 - (gc_content * 50.0) + (motif_score * 0.1)
         interfacial_area_proxy = 800.0 + (gc_content * 500.0) + (motif_score * 2.0)
         
         return min(max(heuristic_binding_proxy, -120.0), 0.0), min(max(interfacial_area_proxy, 400.0), 1500.0)
-
+        
     def _evaluate_single_run(self, rna_sequence):
-        """ Runs a single evaluation trajectory. Stochasticity is isolated purely within Langevin dynamics. """
+        """ Hem Langevin (Stokastik) hem de ODE (Sürekli) motorunu koşturan entegre değerlendirme. """
         binding_proxy, area_proxy = self.predict_structural_metrics(rna_sequence)
         constraints = self.calibration_bridge.constrain_parameter_space(binding_proxy, area_proxy, fcc=0.75)
         
+        # --- 1. Kolmogorov/Langevin Stokastik Metrikleri ---
         model = ColoredNoiseLangevinModel()
         _, trajectory = model.simulate(tau_eff=constraints["tau_constrained"], sigma_eff=constraints["sigma_constrained"])
         
@@ -75,28 +82,40 @@ class RNAGeneticOptimizer:
         oscillation_energy = np.mean(diffs ** 2) / 0.01
         divergence_penalty = max(0.0, np.max(np.abs(trajectory)) - 3.5)
         
+        # --- 2. Sürekli ODE Entegrasyon Metrikleri (Yeni Bağlantı) ---
+        # Kısıtlanmış parametre uzayından [Theta_high, k_fb, tau_m] vektörünü oluşturuyoruz
+        ode_target_vector = [
+            float(abs(constraints["tau_constrained"] * 1.5)),  # Theta_high proksisi
+            float(abs(constraints["sigma_constrained"] * 4.0)),  # k_fb geri besleme kazancı
+            float(constraints["tau_constrained"])               # Dinamik gecikme (tau_m)
+        ]
+        ode_results = run_optimization_simulation(ode_target_vector)
+        
+        ode_leakage = ode_results.get("residual_leakage", 1.0)
+        ode_penalty = abs(ode_leakage - 0.055) * 5.0 # %5.5 sızıntı tabanından sapma cezası
+        
+        # --- 3. Birleşik Skor Hesaplama ---
         fitness_score = (2.5 * confinement_score) + (1.5 * trajectory_smoothness) - \
-                        (0.4 * oscillation_energy) - (4.0 * divergence_penalty)
+                        (0.4 * oscillation_energy) - (4.0 * divergence_penalty) - ode_penalty
+                        
         return fitness_score
-
+        
     def evaluate_fitness(self, rna_sequence, n_evals=3):
-        """ Evaluates candidate fitness using Multi-Evaluation Ensemble Averaging over SDE runs. """
+        """ Aday dizinin ortalama uygunluğunu hesaplar. """
         eval_scores = [self._evaluate_single_run(rna_sequence) for _ in range(n_evals)]
         return max(0.0001, float(np.mean(eval_scores)))
-
+        
     def evolve(self, generations=10):
-        """ Evolves the population across generations preventing premature genetic convergence. """
+        """ Popülasyonu nesiller boyunca evrimleştirir. """
         for gen in range(generations):
             scores = [self.evaluate_fitness(ind) for ind in self.population]
-            
             sorted_indices = np.argsort(scores)[::-1]
             self.population = [self.population[i] for i in sorted_indices]
             
-            next_gen = self.population[:2]  # Elitism
+            next_gen = self.population[:2] # Elitizm (En iyi 2 korunun)
+            
             while len(next_gen) < self.pop_size:
-                # Expanded parent selection pool (top 8) to prevent premature convergence
                 p1, p2 = random.choice(self.population[:8]), random.choice(self.population[:8])
-                
                 cut = random.randint(5, self.sequence_length - 5)
                 child = p1[:cut] + p2[cut:]
                 
@@ -107,7 +126,13 @@ class RNAGeneticOptimizer:
                 next_gen.append(''.join(child_list))
                 
             self.population = next_gen
-            print(f"Generation {gen+1:02d} | Ensemble Max Fitness: {max(scores):.4f} | Champion Population: {self.population[:3]}...")
+            print(f"Generation {gen + 1:02d} | Ensemble Max Fitness: {max(scores):.4f} | Champion: {self.population[0]}")
             
         return self.population
+
+if __name__ == "__main__":
+    optimizer = RNAGeneticOptimizer(sequence_length=30, pop_size=20, mutation_rate=0.06)
+    best_sequences = optimizer.evolve(generations=5)
+    print(f"🥇 En İyi Aday Sekans: {best_sequences[0]}")
+
 
