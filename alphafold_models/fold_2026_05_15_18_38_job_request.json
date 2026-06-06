@@ -1,0 +1,31 @@
+[{
+ "name": "2026-05-15_18:38",
+ "modelSeeds": [
+  "185615162"
+ ],
+ "sequences": [
+  {
+   "proteinChain": {
+    "sequence": "MTEYKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQYMRTGEGFLCVFAINNTKSFEDIHHYREQIKRVKDSEDVPMVLVGNKCDLPSRTVDTKQAQDLARSYGIPFIETSAKTRQGVDDAFYTLVREIRKHKEKMSKDGKKKKKKSKTKCVIM",
+    "count": 1,
+    "useStructureTemplate": true
+   }
+  },
+  {
+   "proteinChain": {
+    "sequence": "VLELSTSLFEELLVELETLVIKLLKECVEMLREAIKGDNMTMTILRLFKEILRNSVTLDEKMKVIALRIFESILKIVDKFLEIVEKIVSMFPDVVLEIIDNFMRFFDILVDFLELLVDFLEILVKLLKECVEDMNKLIKECVEDMREAIKGDKMTMTILRLFKEILRNSV",
+    "count": 1,
+    "useStructureTemplate": true
+   }
+  },
+  {
+   "rnaSequence": {
+    "sequence": "UUGUACUACACAAAAGUACUG",
+    "count": 1
+   }
+  }
+ ],
+ "dialect": "alphafoldserver",
+ "version": 3
+}
+]
