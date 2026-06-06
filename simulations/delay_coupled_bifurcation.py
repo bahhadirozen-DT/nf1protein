@@ -2,8 +2,8 @@
 NF1-Smart-Redirector-Model - Cell-Line Specific Dynamic Delay Attractor Model (DDE-SDE)
 Author: Bahadir Ozen Hls Aydemir faz farkı alıntıdır
 Year: 2026
-Description: Independent simulation sandbox modeling cell-line specific dynamic phase lag 
-             and delay-induced Hopf bifurcation boundaries based on tumor aggressive profiles.
+Description: Independent simulation sandbox modeling cell-line specific dynamic phase lag
+and delay-induced Hopf bifurcation boundaries based on tumor aggressive profiles.
 """
 
 import os
@@ -35,30 +35,27 @@ def run_delay_confinement_simulation(
     R = 1.58
     n_hill = 2.0
     K = 1.0
-    K_tau = 1.0  # Gecikme doyum sabiti
+    K_tau = 1.0 # Gecikme doyum sabiti
 
     # =========================================================================
     # HÜCRE TİPİNE GÖRE OTO-KALİBRASYON (Cell-Line Specific Parameter Tuning)
     # =========================================================================
     if cell_line == "Schwannoma":
         # Benign/Yavaş döngülü NF1-mutant hücre hattı profili
-        tau_baseline = 25  
-        tau_max = 65       
-        print("[*] Profile Configured: NF1-Mutant Schwannoma (Standard Latency Profile)")
+        tau_baseline = 25
+        tau_max = 65
     elif cell_line == "MPNST":
         # Agresif/Hızlı adapte olan malign tümör hattı profili (Daha kısa iletim latansı)
-        tau_baseline = 12  
-        tau_max = 35       
-        print("[*] Profile Configured: Malignant Peripheral Nerve Sheath Tumor - MPNST (Accelerated Latency)")
+        tau_baseline = 12
+        tau_max = 35
     else:
         # Varsayılan / Özelleştirilmiş orta hat profili
         tau_baseline = 20
         tau_max = 50
-        print("[*] Profile Configured: Custom / Generic Cellular Line")
 
     for i in range(N - 1):
         current_t = t[i]
-
+        
         # DURUMA BAĞLI DİNAMİK GECİKME (State-Dependent Dynamic Delay Calculation)
         current_x = x[i]
         if current_x > 0:
@@ -97,19 +94,44 @@ def run_delay_confinement_simulation(
 
     return t, x, y, activation_time, R, cell_line
 
+def run_ga_dde_bridge(ga_params):
+    """
+    Genetik algoritmadan gelen kromozom verilerini hücresel gecikme simülasyonuna bağlayan köprü fonksiyonu.
+    ga_params: [noise_sigma, activation_time] dizilimi
+    """
+    try:
+        ns = float(ga_params[0])
+        at = float(ga_params[1])
+        
+        # Hem Schwannoma hem de MPNST kanser hatları üzerinde eş zamanlı test koşturulur
+        _, x_sch, _, _, _, _ = run_delay_confinement_simulation(cell_line="Schwannoma", noise_sigma=ns, activation_time=at)
+        _, x_mpn, _, _, _, _ = run_delay_confinement_simulation(cell_line="MPNST", noise_sigma=ns, activation_time=at)
+        
+        # Kararlı duruma geçiş fazındaki yörünge kararlılığı ve gürültü emilimi puanlanır
+        sch_variance = float(np.var(x_sch[-500:]))
+        mpn_variance = float(np.var(x_mpn[-500:]))
+        
+        # Kaotik dağılmayı engelleyen kısıt değerlendirmesi
+        is_stable = bool(np.max(np.abs(x_sch)) < 4.0 and np.max(np.abs(x_mpn)) < 4.0)
+        
+        return {
+            "dde_bifurcation_score": 1.0 / (1.0 + sch_variance + mpn_variance),
+            "dde_penalty": 0.0 if is_stable else 30.0,
+            "is_stable": is_stable
+        }
+    except:
+        return {"dde_bifurcation_score": 0.0, "dde_penalty": 50.0, "is_stable": False}
+
 if __name__ == "__main__":
     print("[+] Running Multi-Profile Cell-Line Delay Attractor Simulation...")
-    
-    # İstediğiniz hücre hattını buradan test edebilirsiniz: "Schwannoma" veya "MPNST"
-    target_cell = "MPNST" 
-    
+    target_cell = "MPNST"
     t, x, y, t_act, R_val, active_profile = run_delay_confinement_simulation(
         cell_line=target_cell,
         noise_sigma=0.05,
         activation_time=6.0,
         seed=2026
     )
-
+    
     pre = t < t_act
     post = t >= t_act
 
@@ -119,7 +141,7 @@ if __name__ == "__main__":
     ax1.plot(t[pre], x[pre], color='crimson', lw=2, label='Runaway Regime')
     ax1.plot(t[post], x[post], color='royalblue', lw=1.8, label=f'Confinement ({active_profile})')
     ax1.axvline(x=t_act, color='purple', linestyle='--', lw=2, label='Activation Onset')
-    ax1.set_title(f"Dynamic Delay Stochastic Regulation - {active_profile}")
+    ax1.set_title( f"Dynamic Delay Stochastic Regulation - {active_profile}")
     ax1.set_xlabel("Time")
     ax1.set_ylabel("Signal Amplitude (x)")
     ax1.grid(True, linestyle=':')
@@ -129,7 +151,6 @@ if __name__ == "__main__":
     ax2.plot(x[pre], y[pre], color='crimson', linestyle=':', lw=1.5, label='Runaway Trajectory')
     ax2.plot(x[post], y[post], color='royalblue', lw=1.5, alpha=0.85, label='Dynamic Attractor Confinement')
 
-    # Overlapping theoretical static boundary
     theta = np.linspace(0, 2*np.pi, 300)
     ax2.plot(R_val*np.cos(theta), R_val*np.sin(theta), 'k--', lw=2, alpha=0.6, label='Theoretical Boundary')
     ax2.set_title(f"Phase Portrait ({active_profile} Profile)")
@@ -139,9 +160,10 @@ if __name__ == "__main__":
     ax2.legend()
 
     plt.tight_layout()
-    
     output_dir = "figures"
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"delay_bifurcation_{active_profile.lower()}.png")
     plt.savefig(output_path, dpi=120)
+    plt.close()
+    
     print(f"[+] Simulation finished. Chart successfully exported to: {output_path}")
