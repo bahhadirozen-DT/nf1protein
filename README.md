@@ -27,6 +27,15 @@ This framework functions strictly as a **Structure-Informed Nonlinear Stochastic
 
 ## 🇬🇧 Project Overview & Abstract Structural Hypothesis (English)
 
+### 🛠️ Hybrid Multi-Engine Core Architecture
+To prevent isolated assumptions, the advanced optimization layer (`optimization/genetic_optimizer.py`) evaluates candidate sequences across 5 coupled mathematical frameworks simultaneously:
+1. **Stochastic Langevin Dynamics:** Minimizes false-positive pathway activation rates below the target $1.95\%$ threshold under colored noise.
+2. **Continuous ODE Regulation:** Synchronizes system state trajectories to secure the critical $5.5\%$ adaptive residual leakage floor.
+3. **Delay-Induced DDE Analysis:** Simulates intracellular translation latencies based on tumor profiles (Schwannoma vs. MPNST) to block temporal chaos boundaries.
+4. **Lyapunov Energy Confinement:** Enforces analytical energy surface descent ($dV/dt \leq 0$) to pull runaway cascades into a controlled homeostatic attractor.
+5. **AlphaFold 3 Interface Parsing:** Dynamically reads structural parameters from local JSON server runs (`Job ID: 2026-05-15_18_38`) to apply interface deficit penalties.
+
+
 This repository explores a multi-scale translational mapping sandbox inspired by structural redirection topologies. Moving beyond classical deterministic inhibition paradigms, this project investigates the theoretical potential of structure-informed constraints to dynamically confine simulated oncoprotein cascades within safe homeostatic boundaries.
 
 ### 📐 The Causal Translational Flow
@@ -38,6 +47,14 @@ The **Systems Dynamics Layer (TAPC)** does not function as an actual biological 
 ---
 
 ## 🇹🇷 Proje Özeti ve Soyut Yapısal Hipotez (Türkçe)
+
+### 🛠️ Hibrit Çoklu Motor Çekirdek Mimarisi
+İzole varsayımların önüne geçmek adına, gelişmiş optimizasyon katmanı (`optimization/genetic_optimizer.py`) aday sekansları eş zamanlı olarak 5 bağlantılı matematiksel çerçevede değerlendirir:
+1. **Stokastik Langevin Dinamikleri:** Renkli gürültü altında sahte pozitif yolak aktivasyon oranlarını hedef %1.95 eşiğinin altında tutacak şekilde minimize eder.
+2. **Sürekli ODE Düzenlemesi:** Sistem durum yörüngelerini, kritik %5.5'lik adaptif sızıntı tabanını (residual leakage floor) sabitleyecek şekilde senkronize eder.
+3. **Gecikmeli DDE Analizi:** Tümör agresiflik profillerine (Schwannoma ve MPNST) bağlı hücre içi translasyon gecikmelerini simüle ederek zamansal kaos sınırlarını bloke eder.
+4. **Lyapunov Enerji Sınırlaması:** Analitik enerji yüzeyi azalımını ($dV/dt \leq 0$) zorunlu kılarak kontrolden çıkan kaskatları kontrollü bir homeostatik çekiciye çeker.
+5. **AlphaFold 3 İnterfaz Çözümleme:** Yerel JSON sunucu çıktılarından (`Job ID: 2026-05-15_18_38`) yapısal parametreleri dinamik olarak okuyarak interfaz kilitlenme cezalarını uygular.
 
 Bu depo, yapısal yeniden yönlendirme topolojilerinden ilham alan çok ölçekli bir translasyonel haritalama sandbox'ını araştırmaktadır. Klasik deterministik inhibisyon paradigmalarının ötesine geçen platform, simüle edilmiş mutant sinyal kaskatını duruma bağlı faz uzayı sınırlamalarıyla (confinement) kontrol altına almak amacıyla yapı enformasyonlu kısıtların teorik potansiyelini analiz eder.
 
