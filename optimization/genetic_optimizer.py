@@ -1,6 +1,6 @@
 """
 Module: genetic_optimizer.py
-Description: Universal biological parameter optimization sandbox. ACADEMIC PRODUCTION GRADE.
+Description: Universal biological parameter optimization sandbox. SELF-CONTAINED EDITION.
 """
 
 import random
@@ -153,8 +153,8 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
             fit = compute_comprehensive_fitness(ind)
             scored_population.append((fit, ind))
             
-        scored_population.sort(key=lambda x: x[0], reverse=True)
-        best_fit, best_seq = scored_population[0]
+        scored_population.sort(key=lambda x: x, reverse=True)
+        best_fit, best_seq = scored_population
         
         if gen % 5 == 0 or gen == generations - 1:
             gc_ratio = sum(1 for c in best_seq if c in 'GC') / sequence_length
@@ -173,7 +173,7 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
             
         population = new_population
         
-    final_best_fit, final_best_seq = scored_population[0]
+    final_best_fit, final_best_seq = scored_population
     print("="*70)
     print(f"Optimizasyon Başarıyla Tamamlandı!\nEn İyi Sekans: {final_best_seq}\nSkor: {final_best_fit:.4f}")
     print("="*70 + "\n")
@@ -181,4 +181,3 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
 
 if __name__ == "__main__":
     run_genetic_optimization()
-
