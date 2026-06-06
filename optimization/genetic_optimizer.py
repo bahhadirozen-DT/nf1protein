@@ -1,8 +1,9 @@
 """
 Module: genetic_optimizer.py
-Description: Universal biological parameter optimization sandbox.
+Description: Universal biological parameter optimization sandbox - STABLE PRODUCTION GRADE.
 Integrates Langevin SDE, continuous ODE, delay DDE, Lyapunov landscapes,
 and structural metrics directly from existing AlphaFold 3 Server JSON outputs.
+Strictly constrains Hopf bifurcation boundaries to prevent temporal chaos.
 """
 import random
 import numpy as np
@@ -32,7 +33,7 @@ class RNAGeneticOptimizer:
         cubic_coeffs = [1.0, 0.0, -2.3, 1.9]
         all_roots = np.roots(cubic_coeffs)
         real_roots = all_roots[np.isreal(all_roots)].real
-        self.target_equilibrium = float(real_roots[0]) # ~ -1.81562
+        self.target_equilibrium = float(real_roots) # ~ -1.81562
         
     def _generate_random_rna(self):
         return ''.join(random.choice(self.nucleotides) for _ in range(self.sequence_length))
@@ -75,12 +76,13 @@ class RNAGeneticOptimizer:
             return 100, 0.0
         
     def _evaluate_single_run(self, rna_sequence):
-        """ Entegre Değerlendirme Döngüsü """
+        """ Entegre Değerlendirme Döngüsü - Kararsızlık Korumalı Güvenli Sürüm """
         binding_proxy, area_proxy = self.predict_structural_metrics(rna_sequence)
         constraints = self.calibration_bridge.constrain_parameter_space(binding_proxy, area_proxy, fcc=0.75)
         
-        tau_c = constraints["tau_constrained"]
-        sigma_c = constraints["sigma_constrained"]
+        # Kaotik salınımı engellemek amacıyla parametreleri korumalı kararlı bölgeye sıkıştırıyoruz
+        tau_c = np.clip(constraints["tau_constrained"], 0.5, 2.0)
+        sigma_c = np.clip(constraints["sigma_constrained"], 0.1, 0.45)
         
         # 1. Langevin SDE Motoru
         model = ColoredNoiseLangevinModel()
@@ -99,17 +101,19 @@ class RNAGeneticOptimizer:
         ode_results = run_optimization_simulation(ode_target_vector)
         ode_penalty = abs(ode_results.get("residual_leakage", 1.0) - 0.055) * 5.0
         
-        # 3. Gecikmeli DDE Motoru
+        # 3. Gecikmeli DDE Motoru (Kaotik Hopf Çatallanma Koruması Artırıldı)
         dde_target_vector = [float(tau_c), float(abs(sigma_c * 0.5))]
         dde_results = run_ga_dde_bridge(dde_target_vector)
         dde_score = dde_results.get("dde_bifurcation_score", 0.0)
         dde_penalty = dde_results.get("dde_penalty", 0.0)
+        if not dde_results.get("is_stable", True):
+            dde_penalty += 200.0  # Hakiki Hopf Çatallanması gösteren dizilere ağır bariyer cezası
         
-        # 4. Lyapunov Enerji Analizi
+        # 4. Lyapunov Enerji Analizi (Cezalandırma Katsayısı Artırıldı)
         violations, descent_speed = self.calculate_lyapunov_descent(trajectory)
-        lyapunov_penalty = (violations * 0.1) + abs(descent_speed * 2.0)
+        lyapunov_penalty = (violations * 3.5) + abs(descent_speed * 5.0)
         
-        # 5. DİNAMİK ALPHAFOLD 3 INTEGRASYONU (Yeni Eklenen Kısım)
+        # 5. DİNAMİK ALPHAFOLD 3 INTEGRASYONU
         af_metrics = self.af_validator.parse_alphafold_summary()
         af_penalty = self.af_validator.calculate_interface_penalty(af_metrics)
         
@@ -155,7 +159,7 @@ class RNAGeneticOptimizer:
         import matplotlib.pyplot as plt
         plt.figure(figsize=(9, 4.5))
         plt.plot(range(1, generations + 1), fitness_history, color='darkblue', marker='o', linewidth=2, label='Ensemble Fit')
-        plt.title('Nihai Hibrit Optimizasyon Gradiyenti (AlphaFold 3 Senkronizasyonu)', fontsize=11, fontweight='bold')
+        plt.title('Nihai Hibrit Optimizasyon Gradiyenti (Hopf Bifurcation Engellemeli)', fontsize=11, fontweight='bold')
         plt.grid(True, linestyle=':', alpha=0.6)
         plt.savefig('figures/genetic_optimization_convergence.png', dpi=300)
         plt.close()
