@@ -1,7 +1,7 @@
 """
 Module: genetic_optimizer.py
 Description: Full Causal Flow (RNA -> ODE -> DDE -> LANGEVIN) Multiprocessing Optimizer.
-             PRODUCTION INTEGRATED WITH SEQUENCE-AWARE STOCHASTIC LANGEVIN ENGINE.
+             PRODUCTION INTEGRATED WITH DYNAMIC HYBRID CROSSOVER SANDBOX.
 Project: NF1-Smart-Redirector-Model (TRL-2 Academic Sandbox)
 """
 
@@ -22,9 +22,8 @@ try:
     from simulations.colored_noise_langevin_model import generate_langevin_trajectory
     from simulations.coupled_ode_v1 import run_optimization_simulation
     print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
-except ImportError as e:
-    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız çalışma modu devrede.")
-    # Fallback/Yedek fonksiyonlar (Sistem yollarında kayma olursa süreçlerin kilitlenmesini önler)
+except ImportError:
+    # Hata koruma kalkanı
     def analyze_dde_stability(seq, expression_history=None): return {"is_stable": True, "hopf_proximity": 0.5}
     def generate_langevin_trajectory(timesteps=500, dt=0.01, gamma=0.5, theta=1.2, sigma=0.35): return {"violations": 1, "descent_speed": 0.15}
     def run_optimization_simulation(target_vec): return {"residual_leakage": 0.058}
@@ -79,24 +78,21 @@ def compute_harmonized_dde_stability(rna_sequence, mfe, structure, g_max=1.25, t
     return {"is_stable": is_stable, "hopf_proximity": hopf_proximity}
 
 # ==========================================
-# 3. GERÇEKÇİ VE NEDENSEL FİTNESS MOTORU
+# 3. YENİ SÜREKLİ BİYOFİZİKSEL FİTNESS MOTORU
 # ==========================================
 def compute_comprehensive_fitness(rna_sequence):
     """
-    [8.5/10+ GÜNCELLEMESİ]: Langevin motoru parametreleri artık doğrudan 
-    RNA'nın sekans ve ikincil yapısal özelliklerine (MFE, GC, Loop) bağlıdır.
+    [BALANCED EDITION]: Motif ödül terazisi sönümlenerek GC baskısı artırıldı.
     """
-    # A. Yapısal Verileri Çek
     vienna_results = call_real_vienna_rna(rna_sequence)
     mfe = vienna_results["mfe"]
     structure = vienna_results["structure"]
     
-    # B. Metrikleri Türet
     sequence_length = len(rna_sequence)
     gc_ratio = sum(1 for c in rna_sequence if c in 'GC') / sequence_length
     loop_fraction = structure.count('.') / max(1, len(structure))
     
-    # C. RNA Özelliklerinden Dinamik ODE Parametre Türetimi
+    # RNA Özelliklerinden Dinamik ODE Parametre Türetimi
     theta_high_dynamic = 2.0 + abs(mfe) / 10.0
     k_fb_dynamic = 1.0 + gc_ratio * 2.0
     tau_m_dynamic = 1.5 + (structure.count('.') * 0.2)
@@ -104,11 +100,9 @@ def compute_comprehensive_fitness(rna_sequence):
     ode_target_params = [theta_high_dynamic, k_fb_dynamic, tau_m_dynamic]
     ode_results = run_optimization_simulation(ode_target_params)
     
-    # D. DDE Motoru
     dde_results = compute_harmonized_dde_stability(rna_sequence, mfe, structure)
     
-    # E. [YENİLENDİ]: SEKNSA DUYARLI DİNAMİK LANGEVIN PARAMETRELERİ
-    # Farklı RNA'lar artık farklı gürültü ve çekici kuyu derinliklerine sahip
+    # Sekansa Duyarlı Dinamik Langevin Parametreleri
     gamma_dynamic = 0.3 + abs(mfe) / 100.0
     sigma_dynamic = 0.15 + gc_ratio * 0.3
     theta_dynamic = 0.5 + loop_fraction
@@ -123,17 +117,18 @@ def compute_comprehensive_fitness(rna_sequence):
     
     fitness_score = 0.0
     
-    # 1. Sürekli GC Cezası (Merkez hedef tam %50)
+    # 1. Sürekli GC Cezası (Çarpan korundu, rüşvetle kapatılması zorlaştırıldı)
     fitness_score -= abs(gc_ratio - 0.5) * 20.0
     
     # 2. Sürekli ve Parabolik MFE Eğrisi
     target_mfe = -25.0
     fitness_score += (12.0 - abs(mfe - target_mfe) * 0.35)
         
-    # 3. Yapısal Açık Cep (İlmek) ve Törpülenmiş Motif Etkileşimi
+    # 3. Yapısal Açık Cep (İlmek) ve [DÜZELTİLDİ]: Dengelenmiş Motif Etkileşimi (Öneri 1)
+    # Çarpan 2.0'dan 1.2'ye çekilerek popülasyonun sadece motif biriktirmesi engellendi
     loop_count = structure.count('.')
     count_auua = rna_sequence.count("AUUA")
-    fitness_score += (loop_count * 0.4) + (np.log1p(count_auua) * 2.0)
+    fitness_score += (loop_count * 0.4) + (np.log1p(count_auua) * 1.2)
     
     # 4. Sürekli DDE Hopf Cezası
     hopf_proximity = dde_results["hopf_proximity"]
@@ -142,7 +137,7 @@ def compute_comprehensive_fitness(rna_sequence):
     else:
         fitness_score -= (0.2 - hopf_proximity) * 10.0 if hopf_proximity < 0.2 else 0.0
         
-    # 5. Langevin ve Lyapunov Entegrasyonu (Artık gerçek evrimsel gradyan taşır)
+    # 5. Langevin ve Lyapunov Entegrasyonu
     violations = langevin_results.get("violations", 0)
     descent_speed = langevin_results.get("descent_speed", 0.0)
     fitness_score -= (violations * 0.25) + abs(descent_speed * 0.5)
@@ -153,32 +148,29 @@ def compute_comprehensive_fitness(rna_sequence):
     
     return fitness_score
 
-# ==========================================
-# 4. PARALEL ETİKETLEME YARDIMCISI (POOL WORKER)
-# ==========================================
 def worker_fitness(ind):
     return (compute_comprehensive_fitness(ind), ind)
 
 # ==========================================
-# 5. KORUMACI ÇİFT BLOK GENETİK OPERATÖRLERİ
+# 4. GELİŞMİŞ DİNAMİK HİBRİT OPERATÖRLER
 # ==========================================
 def generate_random_rna(length=30):
     return "".join(random.choice("ACGU") for _ in range(length))
 
-def dual_block_crossover(parent1, parent2):
-    """
-    [YENİLENDİ ⭐]: Hem yararlı kısa motif yapılarını koruyan hem de 2 bağımsız 
-    rekombinasyon olayı yaratarak evrimi hızlandıran Çift Bloklu Crossover operatörü.
-    """
+def block_crossover(parent1, parent2, block_size):
+    """Belirlenen dinamik blok boyutuna göre tek parça takas yapar."""
     size = min(len(parent1), len(parent2))
-    b1 = random.randint(0, size - 4)
-    b2 = random.randint(0, size - 4)
-    
+    start = random.randint(0, size - block_size)
     child = list(parent1)
-    child[b1:b1+4] = parent2[b1:b1+4]
-    child[b2:b2+4] = parent2[b2:b2+4]
-    
+    child[start:start+block_size] = parent2[start:start+block_size]
     return "".join(child)
+
+def two_point_crossover(parent1, parent2):
+    """Makro-keşif ve çeşitlilik sağlayan klasik iki noktalı kesim operatörü."""
+    size = min(len(parent1), len(parent2))
+    cut1 = random.randint(1, size - 2)
+    cut2 = random.randint(cut1 + 1, size - 1)
+    return parent1[:cut1] + parent2[cut1:cut2] + parent1[cut2:]
 
 def mutate_sequence(rna_sequence, mutation_rate):
     sequence_list = list(rna_sequence)
@@ -188,7 +180,7 @@ def mutate_sequence(rna_sequence, mutation_rate):
     return "".join(sequence_list)
 
 # ==========================================
-# 6. OPTİMİZASYON DÖNGÜSÜ (MAIN LOOP)
+# 5. OPTİMİZASYON DÖNGÜSÜ (MAIN LOOP)
 # ==========================================
 def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     population = [generate_random_rna(sequence_length) for _ in range(pop_size)]
@@ -196,17 +188,15 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     
     cores = cpu_count()
     print("\n" + "="*80)
-    print(f"PARALEL CAUSAL FLOW GA MOTORU BAŞLADI | Çekirdek Sayısı: {cores} | Popülasyon: {pop_size} | Nesil: {generations}")
+    print(f"PARALEL HİBRİT GA MOTORU BAŞLADI | Çekirdek Sayısı: {cores} | Popülasyon: {pop_size} | Nesil: {generations}")
     print("="*80)
     
     with Pool(processes=cores) as pool:
         for gen in range(generations):
             scored_population = pool.map(worker_fitness, population)
-            
-            # Skora göre kesin sıralama filtrelemesi
             scored_population.sort(key=lambda x: x[0], reverse=True)
             
-            best_fit, best_seq = scored_population[0]
+            best_fit, best_seq = scored_population
             
             if gen % 5 == 0 or gen == generations - 1:
                 gc_ratio = sum(1 for c in best_seq if c in 'GC') / sequence_length
@@ -219,14 +209,22 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
             while len(new_population) < pop_size:
                 p1 = random.choice(mating_pool)
                 p2 = random.choice(mating_pool)
-                # Çift blok sarmallı yeni evrimsel rekombinasyon tetikleniyor
-                child = dual_block_crossover(p1, p2)
+                
+                # [YENİLENDİ ⭐]: Dinamik Hibrit Crossover Seçim Mekanizması (Öneri 2)
+                if random.random() < 0.70:
+                    # %70 ihtimalle değişken blok boyutlu [4, 6, 8, 10] korumacı çaprazlama
+                    chosen_block_size = random.choice([4, 6, 8, 10])
+                    child = block_crossover(p1, p2, block_size=chosen_block_size)
+                else:
+                    # %30 ihtimalle popülasyon donmasını yıkan iki noktalı makro çaprazlama
+                    child = two_point_crossover(p1, p2)
+                    
                 child = mutate_sequence(child, current_mutation_rate)
                 new_population.append(child)
                 
             population = new_population
             
-        final_best_fit, final_best_seq = scored_population[0]
+        final_best_fit, final_best_seq = scored_population
         print("="*80)
         print(f"Biyofiziksel Kararlı Optimizasyon Tamamlandı!\nEn İyi Sekans: {final_best_seq}\nSkor: {final_best_fit:.4f}")
         print("="*80 + "\n")
