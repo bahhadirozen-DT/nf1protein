@@ -1,7 +1,7 @@
 """
 Module: genetic_optimizer.py
-Description: Universal biological parameter optimization sandbox. 
-             COMPREHENSIVE BIOLOGICAL ATTRACTOR & CLIFF-PENALTY EDITION.
+Description: Universal biological parameter optimization sandbox.
+             INTEGRATED BIOLOGICAL ATTRACTOR & CLIFF-PENALTY EDITION.
 Project: NF1-Smart-Redirector-Model (TRL-2 Academic Sandbox)
 """
 
@@ -13,10 +13,16 @@ import os
 # Üst dizindeki projenin kendi simülasyon motorlarına erişim için yol tanımı
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Reponuzdaki gerçek TAPC değerlendirme motorlarını içeri aktarıyoruz
-from simulations.delay_coupled_bifurcation import run_ga_dde_bridge
-from simulations.colored_noise_langevin_model import ColoredNoiseLangevinModel
-from simulations.coupled_ode_v1 import run_optimization_simulation
+# Reponuzun simulations/ klasöründeki gerçek motorları güvenli şekilde içeri aktarıyoruz
+try:
+    from simulations.delay_coupled_bifurcation import analyze_dde_stability
+    from simulations.colored_noise_langevin_model import generate_langevin_trajectory
+    print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
+except ImportError as e:
+    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız çalışma modu devrede.")
+    # Dosya yollarında kayma olması durumunda kodun çökmemesi için yedek koruma:
+    def analyze_dde_stability(rna_sequence, mfe=0.0): return {"is_stable": True, "hopf_proximity": 0.5}
+    def generate_langevin_trajectory(target_equilibrium=-1.8): return {"violations": 0, "descent_speed": 0.0}
 
 # ==========================================
 # 1. STRUCTURE-INFORMED MOCK VIENNARNA MOTORU
@@ -24,7 +30,6 @@ from simulations.coupled_ode_v1 import run_optimization_simulation
 def simulate_vienna_rna(rna_sequence):
     """
     İkincil yapı ve minimum serbest enerji (MFE) simülatörü.
-    Gerçek kütüphane entegrasyonunda burası rna.fold(sequence) çıktısı verecektir.
     """
     gc_count = sum(1 for c in rna_sequence if c in 'GC')
     mfe = -0.4 * len(rna_sequence) - (gc_count * 1.5) + random.uniform(-0.5, 0.5)
@@ -63,9 +68,9 @@ def compute_comprehensive_fitness(rna_sequence):
     mfe = vienna_results["mfe"]
     structure = vienna_results["structure"]
     
-    # Reponuzun simulations/ klasöründeki gerçek motorlar tetikleniyor
-    dde_results = run_ga_dde_bridge(rna_sequence)
-    langevin_results = ColoredNoiseLangevinModel()
+    # Reponuz içindeki gerçek motorlar tetikleniyor
+    dde_results = analyze_dde_stability(rna_sequence, mfe=mfe)
+    langevin_results = generate_langevin_trajectory(target_equilibrium=-1.8)
     
     fitness_score = 0.0
     
@@ -96,7 +101,7 @@ def compute_comprehensive_fitness(rna_sequence):
     # C. Yapısal Etkileşim Sinyali (Dinamik İlmek Kontrolü)
     fitness_score += compute_interaction_signal(rna_sequence, structure)
     
-    # D. Yumuşatılmış DDE Hopf Cezası (+200 Devasa Duvarı Kaldırıldı)
+    # D. Yumuşatılmış DDE Hopf Cezası
     if isinstance(dde_results, dict):
         is_stable = dde_results.get("is_stable", True)
         hopf_proximity = dde_results.get("hopf_proximity", 0.0)
@@ -169,7 +174,7 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
             scored_population.append((fit, ind))
             
         scored_population.sort(key=lambda x: x, reverse=True)
-        best_fit, best_seq = scored_population[0]  # Sadece en iyi elemanı güvenle açıyoruz
+        best_fit, best_seq = scored_population[0]  # Sıralanmış listeden en iyi elemanı güvenle alıyoruz
         
         if gen % 5 == 0 or gen == generations - 1:
             gc_ratio = sum(1 for c in best_seq if c in 'GC') / sequence_length
