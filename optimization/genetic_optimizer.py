@@ -31,7 +31,7 @@ class RNAGeneticOptimizer:
         self.target_equilibrium = float(real_roots[0]) # ~ -1.81562
         
     def _generate_random_rna(self):
-        return ''. join(random.choice(self.nucleotides) for _ in range(self.sequence_length))
+        return ''.join(random.choice(self.nucleotides) for _ in range(self.sequence_length))
         
     def predict_structural_metrics(self, rna_sequence):
         """
@@ -82,12 +82,11 @@ class RNAGeneticOptimizer:
         oscillation_energy = np.mean(diffs ** 2) / 0.01
         divergence_penalty = max(0.0, np.max(np.abs(trajectory)) - 3.5)
         
-        # --- 2. Sürekli ODE Entegrasyon Metrikleri (Yeni Bağlantı) ---
-        # Kısıtlanmış parametre uzayından [Theta_high, k_fb, tau_m] vektörünü oluşturuyoruz
+        # --- 2. Sürekli ODE Entegrasyon Metrikleri ---
         ode_target_vector = [
             float(abs(constraints["tau_constrained"] * 1.5)),  # Theta_high proksisi
             float(abs(constraints["sigma_constrained"] * 4.0)),  # k_fb geri besleme kazancı
-            float(constraints["tau_constrained"])               # Dinamik gecikme (tau_m)
+            float(constraints["tau_constrained"])                # Dinamik gecikme (tau_m)
         ]
         ode_results = run_optimization_simulation(ode_target_vector)
         
@@ -106,13 +105,21 @@ class RNAGeneticOptimizer:
         return max(0.0001, float(np.mean(eval_scores)))
         
     def evolve(self, generations=10):
-        """ Popülasyonu nesiller boyunca evrimleştirir. """
+        """ Popülasyonu nesiller boyunca evrimleştirir ve skor geçmişini kaydeder. """
+        fitness_history = []
+        
+        if not os.path.exists('figures'):
+            os.makedirs('figures')
+            
         for gen in range(generations):
             scores = [self.evaluate_fitness(ind) for ind in self.population]
             sorted_indices = np.argsort(scores)[::-1]
             self.population = [self.population[i] for i in sorted_indices]
             
-            next_gen = self.population[:2] # Elitizm (En iyi 2 korunun)
+            best_score = max(scores)
+            fitness_history.append(best_score)
+            
+            next_gen = self.population[:2] # Elitizm
             
             while len(next_gen) < self.pop_size:
                 p1, p2 = random.choice(self.population[:8]), random.choice(self.population[:8])
@@ -126,13 +133,25 @@ class RNAGeneticOptimizer:
                 next_gen.append(''.join(child_list))
                 
             self.population = next_gen
-            print(f"Generation {gen + 1:02d} | Ensemble Max Fitness: {max(scores):.4f} | Champion: {self.population[0]}")
+            print(f"Generation {gen + 1:02d} | Ensemble Max Fitness: {best_score:.4f} | Champion: {self.population[:3]}...")
             
+        # --- OTOMATİK GRAFİK ÜRETİM MOTORU ---
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(9, 4.5))
+        plt.plot(range(1, generations + 1), fitness_history, color='crimson', marker='o', linewidth=2, label='Ensemble Max Fitness')
+        plt.title('Genetic Algorithm Optimization History (TRL-2 Sandbox)', fontsize=12, fontweight='bold', pad=15)
+        plt.xlabel('Nesiller (Generations)', fontsize=10)
+        plt.ylabel('Uygunluk Skoru (Fitness Score)', fontsize=10)
+        plt.grid(True, linestyle=':', alpha=0.6)
+        plt.legend(loc='lower right')
+        
+        plt.savefig('figures/genetic_optimization_convergence.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        print("[GRAPHICS SUCCESS] 'figures/genetic_optimization_convergence.png' başarıyla üretildi.")
+        
         return self.population
 
 if __name__ == "__main__":
     optimizer = RNAGeneticOptimizer(sequence_length=30, pop_size=20, mutation_rate=0.06)
-    best_sequences = optimizer.evolve(generations=5)
-    print(f"🥇 En İyi Aday Sekans: {best_sequences[0]}")
-
-
+    best_sequences = optimizer.evolve(generations=10)
+    print(f"🥇 En İyi Aday Sekans: {best_sequences[:1]}")
