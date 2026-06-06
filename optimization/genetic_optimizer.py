@@ -1,7 +1,7 @@
 """
 Module: genetic_optimizer.py
 Description: Universal biological parameter optimization sandbox.
-             INTEGRATED BIOLOGICAL ATTRACTOR & CLIFF-PENALTY EDITION.
+             PRODUCTION INTEGRATED EDITION WITH ABSOLUTE BIOLOGICAL CLIFF-PENALTY.
 Project: NF1-Smart-Redirector-Model (TRL-2 Academic Sandbox)
 """
 
@@ -13,16 +13,17 @@ import os
 # Üst dizindeki projenin kendi simülasyon motorlarına erişim için yol tanımı
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Reponuzun simulations/ klasöründeki gerçek motorları güvenli şekilde içeri aktarıyoruz
+# Simulations klasöründe az önce güncellediğimiz gerçek ve doğru köprü fonksiyonlarını çekiyoruz
 try:
-    from simulations.delay_coupled_bifurcation import analyze_dde_stability
-    from simulations.colored_noise_langevin_model import generate_langevin_trajectory
-    print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
+    from simulations.delay_coupled_bifurcation import run_ga_dde_bridge
+    from simulations.colored_noise_langevin_model import ColoredNoiseLangevinModel
+    print("[BİLGİ] Yenilenen DDE Köprüsü ve Langevin Nesne Yapısı başarıyla bağlandı.")
 except ImportError as e:
-    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız çalışma modu devrede.")
+    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız koruma modu devrede.")
     # Dosya yollarında kayma olması durumunda kodun çökmemesi için yedek koruma:
-    def analyze_dde_stability(rna_sequence, mfe=0.0): return {"is_stable": True, "hopf_proximity": 0.5}
-    def generate_langevin_trajectory(target_equilibrium=-1.8): return {"violations": 0, "descent_speed": 0.0}
+    def run_ga_dde_bridge(rna_sequence): return {"is_stable": True, "hopf_proximity": 0.5}
+    class ColoredNoiseLangevinModel:
+        def __new__(cls): return {"violations": 0, "descent_speed": 0.0}
 
 # ==========================================
 # 1. STRUCTURE-INFORMED MOCK VIENNARNA MOTORU
@@ -68,9 +69,9 @@ def compute_comprehensive_fitness(rna_sequence):
     mfe = vienna_results["mfe"]
     structure = vienna_results["structure"]
     
-    # Reponuz içindeki gerçek motorlar tetikleniyor
-    dde_results = analyze_dde_stability(rna_sequence, mfe=mfe)
-    langevin_results = generate_langevin_trajectory(target_equilibrium=-1.8)
+    # AZ ÖNCE GÜNCELLEDİĞİNİZ GERÇEK REPO MOTORLARI TETİKLENİYOR
+    dde_results = run_ga_dde_bridge(rna_sequence)
+    langevin_results = ColoredNoiseLangevinModel()
     
     fitness_score = 0.0
     
@@ -174,7 +175,7 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
             scored_population.append((fit, ind))
             
         scored_population.sort(key=lambda x: x, reverse=True)
-        best_fit, best_seq = scored_population[0]  # Sıralanmış listeden en iyi elemanı güvenle alıyoruz
+        best_fit, best_seq = scored_population  # Sıralanmış listeden en iyi elemanı güvenle alıyoruz
         
         if gen % 5 == 0 or gen == generations - 1:
             gc_ratio = sum(1 for c in best_seq if c in 'GC') / sequence_length
@@ -193,7 +194,7 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
             
         population = new_population
         
-    final_best_fit, final_best_seq = scored_population[0]
+    final_best_fit, final_best_seq = scored_population
     print("="*70)
     print(f"Optimizasyon Başarıyla Tamamlandı!\nEn İyi Sekans: {final_best_seq}\nSkor: {final_best_fit:.4f}")
     print("="*70 + "\n")
@@ -201,3 +202,4 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
 
 if __name__ == "__main__":
     run_genetic_optimization()
+
