@@ -188,7 +188,3 @@ def run_genetic_optimization(generations=30, pop_size=80, sequence_length=30):
 
 if __name__ == "__main__":
     run_genetic_optimization()
-
-
-if __name__ == "__main__":
-    run_genetic_optimization()
