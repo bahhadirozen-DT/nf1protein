@@ -1,0 +1,46 @@
+;
+;	File 'topol.top' was generated
+;	By user: Bahadir Ozen
+;	On host: 493721d38e5a
+;	At date: Sat May 16 16:26:55 2026
+;
+;	This is a standalone topology file incorporating RNA Aptamer Parameters
+;
+;	Created by:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.4-Ubuntu-2021.4-2 (-:
+;
+
+; Include forcefield parameters (Amber99SB-ILDN with AMBER-99/PARMBSC0 RNA modifications)
+#include "amber99sb-ildn.ff/forcefield.itp"
+
+; Include chain topologies for mutant KRAS complex
+#include "topol_Protein_chain_A.itp"
+#include "topol_Protein_chain_B.itp"
+
+; Include chain topology for the synthetic SRX-RNA01 Aptamer
+#include "topol_RNA_chain_C.itp"
+
+; Include water topology
+#include "amber99sb-ildn.ff/spce.itp"
+
+#ifdef POSRES_WATER
+; Position restraint for each water oxygen
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
+
+; Include topology for ions
+#include "amber99sb-ildn.ff/ions.itp"
+
+[ system ]
+; Name
+Mutant KRAS and SRX-RNA01 Aptamer Complex in Solvated Environment
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_A     1
+Protein_chain_B     1
+RNA_chain_C         1
+SOL             70927
+
