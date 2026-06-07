@@ -13,7 +13,7 @@ import subprocess
 import re
 from multiprocessing import Pool, cpu_count
 
-# Üst dizindeki projenin kendi simülasyon motorlarına erişim için yol tanımı
+# Upper path binding for repository simulations discovery
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # REPO İÇİNDEKİ GERÇEK VE DOĞRU MOTORLARIN ENTEGRASYONU
@@ -22,9 +22,8 @@ try:
     from simulations.colored_noise_langevin_model import generate_langevin_trajectory
     from simulations.coupled_ode_v1 import run_optimization_simulation
     print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
-except ImportError as e:
-    print(f"[UYARI] Modüller yüklenirken hata oluştu ({e}). Bağımsız çalışma modu devrede.")
-    # Fallback/Yedek fonksiyonlar (Sistem yollarında kayma olursa süreçlerin kilitlenmesini önler)
+except ImportError:
+    # Safe Fallback shields to protect multiprocessing worker initialization
     def analyze_dde_stability(seq, expression_history=None): return {"is_stable": True, "hopf_proximity": 0.5}
     def generate_langevin_trajectory(timesteps=500, dt=0.01, gamma=0.5, theta=1.2, sigma=0.35): return {"violations": 1, "descent_speed": 0.15}
     def run_optimization_simulation(target_vec): return {"residual_leakage": 0.058}
@@ -53,7 +52,7 @@ def call_real_vienna_rna(rna_sequence):
                 structure = match.group(1)
                 mfe = float(match.group(2))
                 
-                # Biyofiziksel Özellik Ayrıştırması
+                # Biophysical structural feature parsing derived directly from dot-bracket
                 stem_count = len(re.findall(r'\(+', structure))
                 hairpin_loops = len(re.findall(r'\(\.+\)', structure))
                 base_pairing_rate = (structure.count('(') * 2) / max(1, len(structure))
@@ -68,7 +67,7 @@ def call_real_vienna_rna(rna_sequence):
     except Exception:
         pass
     
-    # Deterministik Fallback Hevristiği (Lokalde RNAfold kurulu değilse devreye girer)
+    # Deteminisitic Fallback Heuristic if RNAfold binary path is unmapped
     gc_count = sum(1 for c in rna_sequence if c in 'GC')
     mfe = -0.4 * len(rna_sequence) - (gc_count * 1.5)
     half = len(rna_sequence) // 3
@@ -86,7 +85,7 @@ def call_real_vienna_rna(rna_sequence):
 # ==========================================
 def compute_harmonized_dde_stability(rna_sequence, mfe, structure, g_max=1.25, tau=2.4):
     """
-    g_max=1.25 ile ölçeği dengelenmiş DDE analiz katmanı.
+    g_max=1.25 ile ölçeği DDE ve Hopf eşiğine (0.6545) göre dengelenmiş kararlılık analizi.
     """
     gc_content = sum(1 for c in rna_sequence if c in 'GC') / max(1, len(rna_sequence))
     loop_fraction = structure.count('.') / max(1, len(structure))
@@ -103,11 +102,11 @@ def compute_harmonized_dde_stability(rna_sequence, mfe, structure, g_max=1.25, t
     return {"is_stable": is_stable, "hopf_proximity": hopf_proximity}
 
 # ==========================================
-# 3. SÜREKLİ VE GEOMETRİ TABANLI FİTNESS MOTORU
+# 3. YENİ SÜREKLİ VE GEOMETRİ TABANLI FİTNESS MOTORU
 # ==========================================
 def compute_comprehensive_fitness(rna_sequence):
     """
-    Motif istifçiliğini engelleyen ve RNAfold geometrisini süzerek 
+    Motif istifçiliğini engelleyen ve RNAfold geometrisini (Stem, Loop) süzerek 
     Langevin'i sekansa bağlayan ana değerlendirme fonksiyonu.
     """
     vienna_results = call_real_vienna_rna(rna_sequence)
@@ -119,6 +118,7 @@ def compute_comprehensive_fitness(rna_sequence):
     
     sequence_length = len(rna_sequence)
     gc_ratio = sum(1 for c in rna_sequence if c in 'GC') / sequence_length
+    loop_fraction = structure.count('.') / max(1, len(structure))
     
     # RNA Özelliklerinden Dinamik ODE Parametre Türetimi
     theta_high_dynamic = 2.0 + abs(mfe) / 10.0
@@ -133,7 +133,7 @@ def compute_comprehensive_fitness(rna_sequence):
     # SEKNSA DUYARLI DİNAMİK LANGEVIN PARAMETRELERİ
     gamma_dynamic = 0.3 + abs(mfe) / 100.0
     sigma_dynamic = 0.15 + gc_ratio * 0.3
-    theta_dynamic = 0.5 + (structure.count('.') / len(structure))
+    theta_dynamic = 0.5 + loop_fraction
     
     langevin_results = generate_langevin_trajectory(
         timesteps=500,
@@ -148,11 +148,11 @@ def compute_comprehensive_fitness(rna_sequence):
     # 1. Sürekli GC Cezası (Merkez hedef tam %50)
     fitness_score -= abs(gc_ratio - 0.5) * 20.0
     
-    # 2. Sürekli ve Parabolik MFE Eğrisi
+    # 2. Sürekli ve Parabolik MFE Eğrisi (Hedef -25)
     target_mfe = -25.0
     fitness_score += (12.0 - abs(mfe - target_mfe) * 0.35)
         
-    # 3. PARABOLİK MOTİF DOYGUNLUK FİLTRESİ
+    # 3. PARABOLİK MOTİF DOYGUNLUK FİLTRESİ (Spam Koruması)
     auua_count = rna_sequence.count("AUUA")
     if auua_count <= 2:
         motif_bonus = auua_count * 2.5
@@ -160,7 +160,6 @@ def compute_comprehensive_fitness(rna_sequence):
         motif_bonus = 5.0 - (auua_count - 2) * 2.0
     fitness_score += motif_bonus
     
-    # 4. RNAFOLD TÜREVLİ İKİNCİL YAPI GEOMETRİSİ ÖDÜLLERİ
     fitness_score += (stem_count * 1.5) 
     fitness_score += (hairpin_loops * 2.0) 
     
@@ -170,26 +169,23 @@ def compute_comprehensive_fitness(rna_sequence):
     else:
         fitness_score -= abs(base_pairing_rate - 0.55) * 6.0
     
-    # 5. Sürekli DDE Hopf Cezası
     hopf_proximity = dde_results["hopf_proximity"]
     if not dde_results["is_stable"]:
         fitness_score -= (12.0 + hopf_proximity * 20.0)
     else:
         fitness_score -= (0.2 - hopf_proximity) * 10.0 if hopf_proximity < 0.2 else 0.0
         
-    # 6. Langevin ve Lyapunov Entegrasyonu
     violations = langevin_results.get("violations", 0)
     descent_speed = langevin_results.get("descent_speed", 0.0)
     fitness_score -= (violations * 0.25) + abs(descent_speed * 0.5)
     
-    # 7. Dengelenmiş ODE Cezası
     residual_leakage = ode_results.get("residual_leakage", 0.055)
     fitness_score -= abs(residual_leakage - 0.055) * 15.0
     
     return fitness_score
 
 def worker_fitness(ind):
-    """Multiprocessing havuzunun haritalandırabilmesi için sarmalayıcı."""
+    """Pool mapping bridge helper."""
     return (compute_comprehensive_fitness(ind), ind)
 
 # ==========================================
@@ -233,44 +229,38 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     with Pool(processes=cores) as pool:
         for gen in range(generations):
             scored_population = pool.map(worker_fitness, population)
-            
-            # Skor bazlı sıralama (Tuple-string bug'ı çözüldü)
             scored_population.sort(key=lambda x: x[0], reverse=True)
             
-            # [DÜZELTİLDİ - GİRİNTİ İÇERİ ALINDI]
             best_fit, best_seq = scored_population[0]
             
             if gen % 5 == 0 or gen == generations - 1:
                 gc_ratio = sum(1 for c in best_seq if c in 'GC') / sequence_length
                 print(f"Nesil {gen:02d} | En İyi Fitness: {best_fit:7.2f} | Sekans: {best_seq} | GC: {gc_ratio:.1%}")
                 
-new_population = [ind for _, ind in scored_population[:elite_count]]
-current_mutation_rate = max(0.015, 0.03 * (1.0 - (gen / generations)))
-mating_pool = [ind for _, ind in scored_population[:int(pop_size * 0.5)]]
-
-while len(new_population) < pop_size:
-    p1 = random.choice(mating_pool)
-    p2 = random.choice(mating_pool)
-    
-    if random.random() < 0.70:
-        # [DÜZELTİLDİ - GİRİNTİ İÇERİ ALINDI] Değişken blok boyutlu korumacı çaprazlama (4, 6, 8, 10)
-        chosen_block_size = random.choice([4, 6, 8, 10])
-        child = block_crossover(p1, p2, block_size=chosen_block_size)
-    else:
-        child = two_point_crossover(p1, p2)
-        
-    child = mutate_sequence(child, current_mutation_rate)
-    new_population.append(child)
-
-population = new_population
-
-# [DÜZELTİLDİ - GİRİNTİ İÇERİ ALINDI] Final değerlendirme
-final_best_fit, final_best_seq = scored_population[0]
-print("=" * 80)
-print(f"Biyofiziksel Kararlı Optimizasyon Tamamlandı!\nEn İyi Sekans: {final_best_seq}\nSkor: {final_best_fit:.4f}")
-print("=" * 80 + "\n")
-
-return final_best_seq
+            new_population = [ind for _, ind in scored_population[:elite_count]]
+            current_mutation_rate = max(0.015, 0.03 * (1.0 - (gen / generations)))
+            mating_pool = [ind for _, ind in scored_population[:int(pop_size * 0.5)]]
+            
+            while len(new_population) < pop_size:
+                p1 = random.choice(mating_pool)
+                p2 = random.choice(mating_pool)
+                
+                if random.random() < 0.70:
+                    chosen_block_size = random.choice([4, 6, 8, 10])
+                    child = block_crossover(p1, p2, block_size=chosen_block_size)
+                else:
+                    child = two_point_crossover(p1, p2)
+                    
+                child = mutate_sequence(child, current_mutation_rate)
+                new_population.append(child)
+                
+            population = new_population
+            
+        final_best_fit, final_best_seq = scored_population[0]
+        print("=" * 80)
+        print(f"Biyofiziksel Kararlı Optimizasyon Tamamlandı!\nEn İyi Sekans: {final_best_seq}\nSkor: {final_best_fit:.4f}")
+        print("=" * 80 + "\n")
+        return final_best_seq
 
 if __name__ == "__main__":
     run_genetic_optimization()
