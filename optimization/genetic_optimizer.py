@@ -219,7 +219,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     population = [generate_random_rna(sequence_length) for _ in range(pop_size)]
     elite_count = int(pop_size * 0.10)
     
-        cores = cpu_count()
+    cores = cpu_count()
     print("\n" + "="*80)
     print(f"PARALEL STRUCTURE-INFORMED GA MOTORU BAŞLADI | Çekirdek: {cores} | Popülasyon: {pop_size}")
     print("="*80)
