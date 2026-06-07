@@ -18,13 +18,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # REPO İÇİNDEKİ GERÇEK VE DOĞRU MOTORLARIN ENTEGRASYONU
 try:
-    from simulations.delay_coupled_bifurcation import analyze_dde_stability
     from simulations.colored_noise_langevin_model import generate_langevin_trajectory
     from simulations.coupled_ode_v1 import run_optimization_simulation
     print("[BİLGİ] simulations/ klasöründeki gerçek motorlar başarıyla bağlandı.")
 except ImportError:
     # Safe Fallback shields to protect multiprocessing worker initialization
-    def analyze_dde_stability(seq, expression_history=None): return {"is_stable": True, "hopf_proximity": 0.5}
     def generate_langevin_trajectory(timesteps=500, dt=0.01, gamma=0.5, theta=1.2, sigma=0.35): return {"violations": 1, "descent_speed": 0.15}
     def run_optimization_simulation(target_vec): return {"residual_leakage": 0.058}
 
@@ -245,10 +243,15 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
                 p1 = random.choice(mating_pool)
                 p2 = random.choice(mating_pool)
                 
-                # [DÜZELTİLDİ ⭐]: Sentaktik doğruluğu ve 70/30 dengesi kesinleştirilmiş crossover döngüsü
                 if random.random() < 0.70:
-                    chosen_block_size = random.choice([4, 6, 8, 10])
-                    child = block_crossover(p1, p2, block_size=chosen_block_size)
+                if random.random() < 0.70:
+                    # [DÜZELTİLDİ ⭐]: AI önerisiyle valid_blocks çökme koruması entegre edildi
+                    valid_blocks = [b for b in [4, 6, 8, 10] if b < len(p1)]
+                    if valid_blocks:
+                        chosen_block_size = random.choice(valid_blocks)
+                        child = block_crossover(p1, p2, chosen_block_size)
+                    else:
+                        child = two_point_crossover(p1, p2)
                 else:
                     child = two_point_crossover(p1, p2)
                     
