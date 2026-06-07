@@ -219,7 +219,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
     population = [generate_random_rna(sequence_length) for _ in range(pop_size)]
     elite_count = int(pop_size * 0.10)
     
-    cores = cpu_count()
+        cores = cpu_count()
     print("\n" + "="*80)
     print(f"PARALEL STRUCTURE-INFORMED GA MOTORU BAŞLADI | Çekirdek: {cores} | Popülasyon: {pop_size}")
     print("="*80)
@@ -244,7 +244,6 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
                 p2 = random.choice(mating_pool)
                 
                 if random.random() < 0.70:
-                if random.random() < 0.70:
                     # [DÜZELTİLDİ ⭐]: AI önerisiyle valid_blocks çökme koruması entegre edildi
                     valid_blocks = [b for b in [4, 6, 8, 10] if b < len(p1)]
                     if valid_blocks:
@@ -257,7 +256,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
                     
                 child = mutate_sequence(child, current_mutation_rate)
                 new_population.append(child)
-                
+
             population = new_population
             
         final_best_fit, final_best_seq = scored_population[0]
