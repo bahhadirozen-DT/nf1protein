@@ -246,7 +246,7 @@ def run_genetic_optimization(generations=30, pop_size=100, sequence_length=30):
                 p2 = random.choice(mating_pool)
                 
                 if random.random() < 0.70:
-                    chosen_block_size = random.choice([4, 6, 8, 10])
+                    chosen_block_size = random.choice([b for b in [4, 6, 8, 10] if b < len(p1)])
                     child = block_crossover(p1, p2, block_size=chosen_block_size)
                 else:
                     child = two_point_crossover(p1, p2)
