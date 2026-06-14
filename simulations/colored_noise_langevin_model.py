@@ -9,7 +9,10 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-def run_langevin_simulation_pipeline(target_equilibrium=-1.8):
+def run_langevin_simulation_pipeline(
+        target_equilibrium=-1.8,
+        omega_mut=1.0,
+        haddock_score=0.0):
     """
     Orijinal 129 satırlık simülasyon, veri okuma ve çizim pipeline'ı.
     Geriye dönük uyumluluk ve veri doğruluğu için tamamen korunmuştur.
@@ -37,8 +40,10 @@ def run_langevin_simulation_pipeline(target_equilibrium=-1.8):
     A_effector = 10.0
 
     # 2. Biyofiziksel Manzara Parametreleri (Rugged Landscape)
-    alpha = 1.8 
-    beta = 1.2 
+    alpha = 1.8 * omega_mut
+    beta = 1.2 * (
+    1.0 + abs(haddock_score)/100.0
+    )
     c1, k1 = 0.12, 10.0
     c2, k2 = 0.06, 22.0
 
@@ -132,17 +137,13 @@ def run_langevin_simulation_pipeline(target_equilibrium=-1.8):
 # =====================================================================
 # GENETİK ALGORİTMA KÖPRÜ BAĞLANTISI (OBJECT INTERFACE WRAPPER)
 # =====================================================================
-
 class ColoredNoiseLangevinModel:
     """
     Genetik algoritmanın nesne tabanlı arayüz çağrısını destekleyen sarmalayıcı sınıf.
     """
     def __new__(cls):
-        return run_langevin_simulation_pipeline(
-            target_equilibrium=-1.8
-        )
-
-
+        # Pipeline'ı tetikler ve GA'nın beklediği sözlük (dict) çıktısını döndürür
+        return run_langevin_simulation_pipeline(target_equilibrium=-1.8)
 # =====================================================================
 # BACKWARD COMPATIBILITY WRAPPER
 # =====================================================================
@@ -153,9 +154,13 @@ def solve_sde(*args, **kwargs):
     Returns:
         trajectory, lambda_max
     """
+    omega_mut = kwargs.get("omega_mut", 1.0)
+    haddock_score = kwargs.get("haddock_score", 0.0)
 
     result = run_langevin_simulation_pipeline(
-        target_equilibrium=-1.8
+      target_equilibrium=-1.8,
+      omega_mut=omega_mut,
+      haddock_score=haddock_score
     )
 
     trajectory = result["trajectory"]
@@ -163,5 +168,4 @@ def solve_sde(*args, **kwargs):
     # Geçici stabilite metriği
     lambda_max = -abs(result["descent_speed"])
 
-    return trajectory, lambda_max
-
+    return trajectory, float(lambda_max)
