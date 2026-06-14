@@ -41,7 +41,7 @@ def run_langevin_simulation_pipeline(
 
     # 2. Biyofiziksel Manzara Parametreleri (Rugged Landscape)
     alpha = 1.8 * omega_mut
-    beta = 1.2 * (
+    beta = 0.2 * (
     1.0 + abs(haddock_score)/100.0
     )
     c1, k1 = 0.12, 10.0
@@ -67,7 +67,7 @@ def run_langevin_simulation_pipeline(
             if np.random.rand() < k_off * dt: is_bound = False
         else:
             if np.random.rand() < k_on * dt: is_bound = True
-        A_redirector_dynamic[i] = 5.5 if is_bound else 0.0
+        A_redirector_dynamic[i] = 1.0 if is_bound else 0.0
 
     # 5. Langevin Çözücü (Memory-infused Integration - Accessibility Spectrum)
     theta_rugged = np.zeros(N)
