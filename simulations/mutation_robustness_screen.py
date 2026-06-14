@@ -61,9 +61,16 @@ def run_probabilistic_screening(iterations=500):
                 
         p_homeostasis = rescue_count / iterations
         mean_lambda = np.mean(lyapunov_pool)
+
+        print("DEBUG:", mut_name)
+        print("min =", np.min(lyapunov_pool))
+        print("mean =", np.mean(lyapunov_pool))
+        print("max =", np.max(lyapunov_pool))
+
+        r_score = 0.4 * sigmoid(-mean_lambda) + 0.6 * p_homeostasis
         
         # Ölçek patlamasını önleyen normalize edilmiş dinamik kurtarma skoru (R)
-        r_score = 0.4 * sigmoid(-mean_lambda) + 0.6 * p_homeostasis
+        r_score = sigmoid(abs(mean_lambda) * 200)
         
         print(f"▶ Varyant: {mut_name} [Kanit Duzeyi: {meta['evidence'].upper()}]")
         print(f"  └─ Olasiliksal Kurtarma P(homeostasis): %{p_homeostasis*100:.2f}")
