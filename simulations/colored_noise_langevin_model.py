@@ -139,3 +139,31 @@ class ColoredNoiseLangevinModel:
     def __new__(cls):
         # Pipeline'ı tetikler ve GA'nın beklediği sözlük (dict) çıktısını döndürür
         return run_langevin_simulation_pipeline(target_equilibrium=-1.8)
+# =====================================================================
+# GENETİK ALGORİTMA KÖPRÜ BAĞLANTISI (OBJECT INTERFACE WRAPPER)
+# =====================================================================
+
+class ColoredNoiseLangevinModel:
+    """
+    Genetik algoritmanın nesne tabanlı arayüz çağrısını destekleyen sarmalayıcı sınıf.
+    """
+    def __new__(cls):
+        return run_langevin_simulation_pipeline(
+            target_equilibrium=-1.8
+        )
+
+
+# =====================================================================
+# BACKWARD COMPATIBILITY WRAPPER
+# =====================================================================
+
+def solve_sde(*args, **kwargs):
+    """
+    mutation_robustness_screen.py tarafından beklenen eski API.
+    """
+
+    result = run_langevin_simulation_pipeline(
+        target_equilibrium=-1.8
+    )
+
+    return result
