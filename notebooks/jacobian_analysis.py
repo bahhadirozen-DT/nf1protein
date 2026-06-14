@@ -1,94 +1,168 @@
 """
-Module: jacobian_analysis.py
-Description: Symbolically derives the 4D Jacobian matrix, trace indicators, 
-and characteristic polynomial for the composite stress-gated TAPC model.
+FAST JACOBIAN ANALYSIS
+Lightweight symbolic stability engine
 """
 
 import os
 import sympy as sp
 
+
 def derive_symbolic_jacobian():
-    # --- Klasör Kontrolü ---
-    if not os.path.exists('figures'):
-        os.makedirs('figures')
 
-    # --- 1. Sembolik Değişkenlerin Tanımlanması (4D State Space) ---
-    # Hücre içi durum değişkenleri (States)
-    K, P, R, M = sp.symbols('KRAS pERK ROS M')
+    if not os.path.exists("figures"):
+        os.makedirs("figures")
 
-    # Sistem kinetik parametreleri
-    Th, n, tau = sp.symbols('Theta_high n tau_m')
-    k_prod, k_deg, Km = sp.symbols('k_prod k_deg K_m')
-    k_act, k_fb, k_ROS, k_clear = sp.symbols('k_act k_fb k_ROS k_clear')
+    # State variables
+    K, P, R, M = sp.symbols("KRAS pERK ROS M")
 
-    # --- 2. Baskılama Rejim Geçiş Diferansiyelleri (Sigmoid Blending) ---
-    # Biyolojik terminolojiyle süreklilik kazandırılmış rejim katsayıları
-    suppression_high_weight = 1.0 / (1.0 + sp.exp(-25 * (M - 0.82)))
-    suppression_low_weight = 1.0 / (1.0 + sp.exp(-18 * (M - 0.55)))
+    # Parameters
+    Th, n, tau = sp.symbols("Theta_high n tau_m")
+    k_prod, k_deg, Km = sp.symbols("k_prod k_deg K_m")
+    k_act, k_fb, k_ROS, k_clear = sp.symbols(
+        "k_act k_fb k_ROS k_clear"
+    )
 
-    # Sinyal Saptırma ve Koşullu Yıkım Dinamikleri
-    diversion_coeff = 1.0 - (0.99 * suppression_high_weight)
-    total_clearance = (k_deg * (1.0 + 3.0 * suppression_high_weight)) + (3.0 * suppression_low_weight)
-    degradation = (total_clearance * K) / (Km + K) * M
+    # Sigmoid regime transitions
+    suppression_high_weight = 1 / (
+        1 + sp.exp(-25 * (M - 0.82))
+    )
 
-    # Kompozit Stres Fonksiyonu Belirteçleri
+    suppression_low_weight = 1 / (
+        1 + sp.exp(-18 * (M - 0.55))
+    )
+
+    diversion_coeff = (
+        1 - 0.99 * suppression_high_weight
+    )
+
+    total_clearance = (
+        k_deg * (1 + 3 * suppression_high_weight)
+        + 3 * suppression_low_weight
+    )
+
+    degradation = (
+        total_clearance * K / (Km + K) * M
+    )
+
+    # Composite stress function
     S_t = 0.5 * P + 0.4 * K + 0.1 * R
-    Theta_S = (S_t**n) / (Th**n + S_t**n)
 
-    # --- 3. Bağlı Diferansiyel Denklem Seti (Coupled f_i Functions) ---
-    f1 = (k_prod * diversion_coeff) - degradation  # dKRAS/dt
-    f2 = k_act * K - (k_fb * M * P)                 # dpERK/dt
-    f3 = k_ROS * K - k_clear * R                   # dROS/dt
-    f4 = (Theta_S - M) / tau                        # dM/dt
+    Theta_S = (
+        S_t**n /
+        (Th**n + S_t**n)
+    )
+
+    # ODE system
+    f1 = k_prod * diversion_coeff - degradation
+    f2 = k_act * K - k_fb * M * P
+    f3 = k_ROS * K - k_clear * R
+    f4 = (Theta_S - M) / tau
 
     equations = [f1, f2, f3, f4]
     states = [K, P, R, M]
-    state_names = ["KRAS", "pERK", "ROS", "M"]
 
-    # --- 4. Sembolik Jacobian Matrisinin İnşası (J_ij = df_i / dx_j) ---
     print("=" * 80)
-    print("=== ANALİTİK DİNAMİK MOTORU: SYMPY TABANLI 4D JACOBIAN ANALİZİ ===")
+    print("=== FAST SYMBOLIC JACOBIAN ANALYSIS ===")
     print("=" * 80)
-    
-    Jacobian_matrix = sp.Matrix([[sp.diff(f, x) for x in states] for f in equations])
 
-    # --- 5. Gelişmiş Akademik Analiz: Trace ve Karakteristik Polinom ---
-    print("[-] Sistem kararlılık parametreleri ve spektral matris izi türetiliyor...")
+    Jacobian_matrix = sp.Matrix(
+        [
+            [sp.diff(f, x) for x in states]
+            for f in equations
+        ]
+    )
+
+    print("[+] Jacobian oluşturuldu.")
+
     j_trace = Jacobian_matrix.trace()
-    
-    # Karakteristik polinom (Kutupsal spektrum - Eigenvalue analizi için)
-    lam = sp.symbols('lambda')
-    char_poly_expr = Jacobian_matrix.charpoly(lam).as_expr()
 
-    # --- 6. Raporlama ve Dosyaya Kaydetme (Akademik Rapor Standartı) ---
-    report_path = 'figures/jacobian_symbolic_report.txt'
-    with open(report_path, 'w', encoding='utf-8') as f_out:
-        f_out.write("========================================================================\n")
-        f_out.write("=== ANALYTICAL SYSTEM BIOLOGY REPORT: SYMBOLIC JACOBIAN VALIDATION ===\n")
-        f_out.write("========================================================================\n\n")
-        
-        f_out.write("## 1. HESAPLANAN MATRİS ELEMANLARI (Kısmi Türevler)\n")
+    print("[+] Trace hesaplandı.")
+
+    # ---------------------------------------------------
+    # FAST NUMERICAL EIGENVALUE APPROXIMATION
+    # ---------------------------------------------------
+
+    print("[+] Sayısal özdeğer yaklaşımı hesaplanıyor...")
+
+    sample_values = {
+        K: 1.0,
+        P: 1.0,
+        R: 1.0,
+        M: 0.5,
+        Th: 1.0,
+        n: 2.0,
+        tau: 2.0,
+        k_prod: 1.0,
+        k_deg: 0.5,
+        Km: 1.0,
+        k_act: 1.0,
+        k_fb: 0.5,
+        k_ROS: 0.3,
+        k_clear: 0.4,
+    }
+
+    J_numeric = Jacobian_matrix.subs(
+        sample_values
+    ).evalf()
+
+    eigenvalues = J_numeric.eigenvals()
+
+    print("[+] Özdeğerler hesaplandı.")
+
+    report_path = (
+        "figures/jacobian_symbolic_report.txt"
+    )
+
+    with open(
+        report_path,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        f.write("=" * 60 + "\n")
+        f.write(
+            "FAST JACOBIAN ANALYSIS REPORT\n"
+        )
+        f.write("=" * 60 + "\n\n")
+
+        f.write("JACOBIAN MATRIX\n\n")
+
         for i in range(4):
             for j in range(4):
-                output_str = f"J[{i}][{j}] (d{equations[i].args if hasattr(equations[i], 'name') else f'f_{i+1}'}/d{state_names[j]}):\n{Jacobian_matrix[i, j]}\n"
-                print(f"[+] Haritalandı J[{i}][{j}] -> d{state_names[i]}/d{state_names[j]}")
-                f_out.write(output_str + "\n" + "-"*40 + "\n")
-        
-        f_out.write("\n## 2. DİNAMİK DİSİPATİFLİK VE MATRİS İZİ (Trace J)\n")
-        f_out.write(f"Trace(J) = {j_trace}\n\n")
-        f_out.write("[*] Not: Trace(J) < 0 koşulu altında sistem faz uzayında hacim daraltır.\n")
-        f_out.write("    Bu durum, gürültü flüktüasyonlarına karşı homeostatik çeker alanın (attractor) korunduğunu ispatlar.\n\n")
-        
-        f_out.write("## 3. KARAKTERİSTİK POLİNOM DENKLEMİ (Eigenvalue Spektrumu)\n")
-        f_out.write(f"P(lambda) = {char_poly_expr}\n")
 
-    print(f"\n[SUCCESS] Sembolik Jacobian analizi ve kararlılık ispatı tamamlandı!")
-    print(f"--> Analitik Rapor: '{report_path}' dosyasına kaydedildi.")
+                f.write(
+                    f"J[{i},{j}]\n"
+                )
+
+                f.write(
+                    str(
+                        Jacobian_matrix[i, j]
+                    )
+                )
+
+                f.write("\n\n")
+
+        f.write("TRACE(J)\n")
+        f.write(str(j_trace))
+        f.write("\n\n")
+
+        f.write(
+            "NUMERICAL EIGENVALUES\n"
+        )
+
+        f.write(
+            str(eigenvalues)
+        )
+
+    print("\n[SUCCESS]")
+    print(
+        f"Rapor kaydedildi: {report_path}"
+    )
+
     print("=" * 80)
-    
+
     return Jacobian_matrix
+
 
 if __name__ == "__main__":
     derive_symbolic_jacobian()
-
-
