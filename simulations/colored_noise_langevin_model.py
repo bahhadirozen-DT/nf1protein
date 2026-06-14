@@ -160,8 +160,18 @@ class ColoredNoiseLangevinModel:
 def solve_sde(*args, **kwargs):
     """
     Legacy API wrapper expected by mutation_robustness_screen.py
+    Returns:
+        trajectory, lambda_max
     """
-    return run_langevin_simulation_pipeline(
+
+    result = run_langevin_simulation_pipeline(
         target_equilibrium=-1.8
     )
+
+    trajectory = result["trajectory"]
+
+    # Geçici stabilite metriği
+    lambda_max = -abs(result["descent_speed"])
+
+    return trajectory, lambda_max
 
