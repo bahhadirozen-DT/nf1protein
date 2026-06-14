@@ -159,11 +159,9 @@ class ColoredNoiseLangevinModel:
 
 def solve_sde(*args, **kwargs):
     """
-    mutation_robustness_screen.py tarafından beklenen eski API.
+    Legacy API wrapper expected by mutation_robustness_screen.py
     """
-
-    result = run_langevin_simulation_pipeline(
+    return run_langevin_simulation_pipeline(
         target_equilibrium=-1.8
     )
 
-    return result
