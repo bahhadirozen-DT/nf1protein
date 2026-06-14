@@ -1,5 +1,6 @@
 """
 Module: simulations/calibration_engine.py
+Fast experimental calibration engine
 """
 
 import os
@@ -9,6 +10,9 @@ import matplotlib.pyplot as plt
 
 
 def signaling_decay_model(t, k_decay, alpha_adaptation):
+    """
+    Simple damped signaling model
+    """
     return np.exp(-k_decay * t) * (
         1.0 + alpha_adaptation * np.sin(t)
     )
@@ -20,16 +24,20 @@ def run_wetlab_calibration():
     print("EXPERIMENTAL CALIBRATION ENGINE")
     print("=" * 80)
 
+    # Experimental Western Blot data
     t_experimental = np.array(
-        [0.0, 2.0, 4.0, 6.0, 12.0, 24.0, 48.0]
+        [0.0, 2.0, 4.0, 6.0, 12.0, 24.0, 48.0],
+        dtype=float
     )
 
     perk_relative_density = np.array(
-        [1.0, 0.72, 0.45, 0.31, 0.15, 0.08, 0.02]
+        [1.0, 0.72, 0.45, 0.31, 0.15, 0.08, 0.02],
+        dtype=float
     )
 
     print("[+] Western Blot data loaded")
 
+    # Initial guesses
     initial_guesses = [0.1, 0.1]
 
     popt, pcov = opt.curve_fit(
@@ -59,9 +67,10 @@ def run_wetlab_calibration():
         f"alpha   = {best_alpha:.6f} ± {alpha_err:.6f}"
     )
 
-    if not os.path.exists("figures"):
-        os.makedirs("figures")
+    # Create output directory
+    os.makedirs("figures", exist_ok=True)
 
+    # Smooth fit curve
     t_fine = np.linspace(0, 48, 500)
 
     plt.figure(figsize=(8, 5))
@@ -101,7 +110,10 @@ def run_wetlab_calibration():
 
     plt.close()
 
-    print(f"\n[+] Figure saved: {graph_path}")
+    print(
+        f"\n[+] Figure saved: {graph_path}"
+    )
+
     print("=" * 80)
 
     return {
