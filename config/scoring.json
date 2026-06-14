@@ -1,0 +1,16 @@
+{
+  "weights": {
+    "target_binding": 0.25,
+    "accessibility": 0.20,
+    "structure_ensemble": 0.15,
+    "self_structure_penalty": 0.15,
+    "off_target": 0.10,
+    "immunity": 0.05,
+    "rnase_risk": 0.05
+  },
+  "thresholds": {
+    "min_gc": 0.40,
+    "max_gc": 0.60,
+    "min_len": 19
+  }
+}
