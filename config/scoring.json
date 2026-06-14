@@ -5,6 +5,7 @@
     "structure_ensemble": 0.15,
     "self_structure_penalty": 0.15,
     "off_target": 0.10,
+    "gc_penalty": 0.10,
     "immunity": 0.05,
     "rnase_risk": 0.05
   },
