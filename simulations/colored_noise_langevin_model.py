@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def run_langevin_simulation_pipeline(
-    target_equilibrium=-1.8,
+    target_equilibrium=-0.5,
     omega_mut=1.0,
     haddock_score=0.0):
 
@@ -137,8 +137,16 @@ def run_langevin_simulation_pipeline(
     'docs/ensemble_dynamics_v2.png',
     dpi=300,
     bbox_inches='tight'
-)
+    )
     plt.close()
+
+    print(
+    "[SIM]",
+    "omega=", omega_mut,
+    "haddock=", haddock_score,
+    "descent=", descent_speed_accumulator / N,
+    "violations=", violations
+    )
 
     return {
         "trajectory": theta_rugged,
@@ -172,7 +180,7 @@ def solve_sde(*args, **kwargs):
     )
 
     result = run_langevin_simulation_pipeline(
-        target_equilibrium=-1.8,
+        target_equilibrium=0.5,
         omega_mut=omega_mut,
         haddock_score=haddock_score
     )
