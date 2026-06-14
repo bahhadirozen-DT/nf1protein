@@ -10,13 +10,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def run_langevin_simulation_pipeline(
-        target_equilibrium=-1.8,
-        omega_mut=1.0,
-        haddock_score=0.0):
-    """
-    Orijinal 129 satırlık simülasyon, veri okuma ve çizim pipeline'ı.
-    Geriye dönük uyumluluk ve veri doğruluğu için tamamen korunmuştur.
-    """
+    target_equilibrium=-1.8,
+    omega_mut=1.0,
+    haddock_score=0.0):
+
+    print(
+        "[PIPELINE]",
+        "omega=", omega_mut,
+        "haddock=", haddock_score
+    )
+
     # 0. ALPHAFOLD & STRUCTURAL INTEGRATION BINDING KÖPRÜSÜ
     try:
         from analyze_structure import analyze_molecular_interaction
@@ -40,12 +43,15 @@ def run_langevin_simulation_pipeline(
     A_effector = 10.0
 
     # 2. Biyofiziksel Manzara Parametreleri (Rugged Landscape)
-    alpha = 1.8 * omega_mut
-    beta = 0.2 * (
-    1.0 + abs(haddock_score)/100.0
+
+    alpha = 3.0 * omega_mut
+
+    beta = (
+    2.0 * np.log1p(abs(haddock_score))
     )
-    c1, k1 = 0.12, 10.0
-    c2, k2 = 0.06, 22.0
+
+    c1, k1 = 0.25, 12.0
+    c2, k2 = 0.18, 25.0
 
     # 3. Gelişmiş Ornstein-Uhlenbeck Renkli Gürültü Parametreleri (Colored Noise)
     tau_memory = 0.8 
@@ -123,9 +129,15 @@ def run_langevin_simulation_pipeline(
     ax3.legend(loc='upper right')
 
     plt.tight_layout()
+
     if not os.path.exists('docs'):
         os.makedirs('docs')
-    plt.savefig('docs/ensemble_dynamics_v2.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig(
+    'docs/ensemble_dynamics_v2.png',
+    dpi=300,
+    bbox_inches='tight'
+)
     plt.close()
 
     return {
@@ -149,23 +161,24 @@ class ColoredNoiseLangevinModel:
 # =====================================================================
 
 def solve_sde(*args, **kwargs):
-    """
-    Legacy API wrapper expected by mutation_robustness_screen.py
-    Returns:
-        trajectory, lambda_max
-    """
+
     omega_mut = kwargs.get("omega_mut", 1.0)
     haddock_score = kwargs.get("haddock_score", 0.0)
 
+    print(
+        "[DEBUG]",
+        "omega=", omega_mut,
+        "haddock=", haddock_score
+    )
+
     result = run_langevin_simulation_pipeline(
-      target_equilibrium=-1.8,
-      omega_mut=omega_mut,
-      haddock_score=haddock_score
+        target_equilibrium=-1.8,
+        omega_mut=omega_mut,
+        haddock_score=haddock_score
     )
 
     trajectory = result["trajectory"]
 
-    # Geçici stabilite metriği
     lambda_max = -abs(result["descent_speed"])
 
     return trajectory, float(lambda_max)
