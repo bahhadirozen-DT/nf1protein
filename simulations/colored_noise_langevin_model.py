@@ -132,16 +132,6 @@ def run_langevin_simulation_pipeline(target_equilibrium=-1.8):
 # =====================================================================
 # GENETİK ALGORİTMA KÖPRÜ BAĞLANTISI (OBJECT INTERFACE WRAPPER)
 # =====================================================================
-class ColoredNoiseLangevinModel:
-    """
-    Genetik algoritmanın nesne tabanlı arayüz çağrısını destekleyen sarmalayıcı sınıf.
-    """
-    def __new__(cls):
-        # Pipeline'ı tetikler ve GA'nın beklediği sözlük (dict) çıktısını döndürür
-        return run_langevin_simulation_pipeline(target_equilibrium=-1.8)
-# =====================================================================
-# GENETİK ALGORİTMA KÖPRÜ BAĞLANTISI (OBJECT INTERFACE WRAPPER)
-# =====================================================================
 
 class ColoredNoiseLangevinModel:
     """
