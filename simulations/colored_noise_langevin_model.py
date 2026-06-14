@@ -9,8 +9,10 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
+_CACHED_THETA = None
+
 def run_langevin_simulation_pipeline(
-    target_equilibrium=-0.5,
+    target_equilibrium=0.5,
     omega_mut=1.0,
     haddock_score=0.0):
 
@@ -21,34 +23,58 @@ def run_langevin_simulation_pipeline(
     )
 
     # 0. ALPHAFOLD & STRUCTURAL INTEGRATION BINDING KÖPRÜSÜ
+    global _CACHED_THETA
+
     try:
-        from analyze_structure import analyze_molecular_interaction
-        cif_files = glob.glob("alphafold_models/*.cif")
-        if cif_files:
-            print(f"[*] AlphaFold yapısal verileri okunuyor: {cif_files[0]}")
-            structure_results = analyze_molecular_interaction(cif_files[0])
-            theta_native = float(structure_results["theta_occupancy"])
-        else:
-            print("[!] Klasörde .cif dosyası bulunamadı. Hevristik taban değere dönülüyor.")
-            theta_native = 0.65 
+        if _CACHED_THETA is None:
+
+            from analyze_structure import analyze_molecular_interaction
+
+            BASE_DIR = os.path.dirname(
+                os.path.dirname(
+                    os.path.abspath(__file__)
+                )
+            )
+
+            cif_files = glob.glob(
+                os.path.join(
+                    BASE_DIR,
+                    "alphafold_models",
+                    "*.cif"
+                )
+            )
+
+            if cif_files:
+
+                print(f"[*] AlphaFold yapısal verileri okunuyor: {cif_files[0]}")
+
+                structure_results = analyze_molecular_interaction(cif_files[0])
+
+                _CACHED_THETA = float(structure_results["theta_occupancy"])
+
+            else:
+
+                print("[!] Klasörde .cif dosyası bulunamadı.")
+                _CACHED_THETA = 0.65
+
+        theta_native = _CACHED_THETA
+
     except Exception as e:
-        print(f"[!] Köprü bağlantısı kurulamadı ({e}). Hevristik taban değere dönülüyor.")
-        theta_native = 0.65 
+
+        print(f"[!] Köprü bağlantısı kurulamadı ({e})")
+        theta_native = 0.65
 
     # 1. Zaman ve Alan Parametreleri
     T = 250.0 
     dt = 0.01 
-    N = int( T / dt)
+    N = int(T / dt)
     t = np.linspace(0, T, N)
     A_effector = 10.0
 
     # 2. Biyofiziksel Manzara Parametreleri (Rugged Landscape)
-
     alpha = 3.0 * omega_mut
 
-    beta = (
-    2.0 * np.log1p(abs(haddock_score))
-    )
+    beta = 2.0 * np.log1p(abs(haddock_score))
 
     c1, k1 = 0.25, 12.0
     c2, k2 = 0.18, 25.0
@@ -70,9 +96,11 @@ def run_langevin_simulation_pipeline(
 
     for i in range(N):
         if is_bound:
-            if np.random.rand() < k_off * dt: is_bound = False
+            if np.random.rand() < k_off * dt: 
+                is_bound = False
         else:
-            if np.random.rand() < k_on * dt: is_bound = True
+            if np.random.rand() < k_on * dt: 
+                is_bound = True
         A_redirector_dynamic[i] = 1.0 if is_bound else 0.0
 
     # 5. Langevin Çözücü (Memory-infused Integration - Accessibility Spectrum)
@@ -134,18 +162,18 @@ def run_langevin_simulation_pipeline(
         os.makedirs('docs')
 
     plt.savefig(
-    'docs/ensemble_dynamics_v2.png',
-    dpi=300,
-    bbox_inches='tight'
+        'docs/ensemble_dynamics_v2.png',
+        dpi=300,
+        bbox_inches='tight'
     )
     plt.close()
 
     print(
-    "[SIM]",
-    "omega=", omega_mut,
-    "haddock=", haddock_score,
-    "descent=", descent_speed_accumulator / N,
-    "violations=", violations
+        "[SIM]",
+        "omega=", omega_mut,
+        "haddock=", haddock_score,
+        "descent=", descent_speed_accumulator / N,
+        "violations=", violations
     )
 
     return {
@@ -164,6 +192,7 @@ class ColoredNoiseLangevinModel:
     def __new__(cls):
         # Pipeline'ı tetikler ve GA'nın beklediği sözlük (dict) çıktısını döndürür
         return run_langevin_simulation_pipeline(target_equilibrium=-1.8)
+
 # =====================================================================
 # BACKWARD COMPATIBILITY WRAPPER
 # =====================================================================
