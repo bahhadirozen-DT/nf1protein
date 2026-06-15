@@ -56,7 +56,7 @@ def run_probabilistic_screening(iterations=500):
             lyapunov_pool.append(lambda_max)
             
             # Confinement Analizi (Homeostatik havzaya kilitlenme kontrolü)
-            if np.max(np.abs(trajectory[-100:])) < 0.20:
+            if np.mean(trajectory[-100:]) < 0.40:
                 rescue_count += 1
                 
         p_homeostasis = rescue_count / iterations
@@ -67,10 +67,15 @@ def run_probabilistic_screening(iterations=500):
         print("mean =", np.mean(lyapunov_pool))
         print("max =", np.max(lyapunov_pool))
 
-        r_score = 0.4 * sigmoid(-mean_lambda) + 0.6 * p_homeostasis
-        
-        # Ölçek patlamasını önleyen normalize edilmiş dinamik kurtarma skoru (R)
-        r_score = sigmoid(abs(mean_lambda) * 200)
+        lambda_component = sigmoid(abs(mean_lambda) * 200)
+
+        print("lambda_component =", lambda_component)
+        print("p_homeostasis =", p_homeostasis)
+
+        r_score = (
+            0.5 * lambda_component +
+            0.5 * p_homeostasis
+        )
         
         print(f"▶ Varyant: {mut_name} [Kanit Duzeyi: {meta['evidence'].upper()}]")
         print(f"  └─ Olasiliksal Kurtarma P(homeostasis): %{p_homeostasis*100:.2f}")
