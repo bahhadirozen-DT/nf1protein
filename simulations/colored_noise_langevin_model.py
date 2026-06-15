@@ -10,11 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 _CACHED_THETA = None
+_LANGEVIN_CACHE = {}
 
 def run_langevin_simulation_pipeline(
     target_equilibrium=0.5,
     omega_mut=1.0,
-    haddock_score=0.0):
+    haddock_score=0.0,
+    save_plot=False):
 
     print(
         "[PIPELINE]",
@@ -65,8 +67,8 @@ def run_langevin_simulation_pipeline(
         theta_native = 0.65
 
     # 1. Zaman ve Alan Parametreleri
-    T = 250.0 
-    dt = 0.01 
+    T = 50.0
+    dt = 0.01
     N = int(T / dt)
     t = np.linspace(0, T, N)
     A_effector = 10.0
@@ -84,8 +86,7 @@ def run_langevin_simulation_pipeline(
     sigma_noise = 0.25 
     eta = np.zeros(N) 
 
-    # 4. Olasılıksal Bağlanma Kinetiği (Probabilistic Occupancy Gating)
-    np.random.seed(88)
+    # 4. Olasılıksal Bağlanma Kinetiği (Probabilistic Occupancy Gating)    
     A_redirector_dynamic = np.zeros(N)
     is_bound = True
     k_on = 0.04 
@@ -126,7 +127,7 @@ def run_langevin_simulation_pipeline(
         theta_rugged[i] = curr_theta + dtheta
         
         # Confinement İhlal Takibi
-        if abs(theta_rugged[i] - target_equilibrium) > 1.2:
+        if abs(theta_rugged[i] - target_equilibrium) > 0.25:
             violations += 1
         descent_speed_accumulator += -total_gradient
 
@@ -134,39 +135,41 @@ def run_langevin_simulation_pipeline(
     phi_rugged = A_effector * (1.0 - theta_rugged) / (1 + A_redirector_dynamic)
 
     # 6. Görselleştirme
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(13, 11), sharex=True)
+    if save_plot:
 
-    ax1.plot(t, A_redirector_dynamic, 'r-', alpha=0.7, label='Olasılıksal Rezidans Kinetiği ($A_{redirector}(t)$)')
-    ax1.set_ylabel('İnhibitör Durumu', fontsize=10)
-    ax1.set_title('Probabilistic Residence Kinetics & Local Concentration Fluctuations', fontsize=12, fontweight='bold')
-    ax1.grid(True, linestyle=':', alpha=0.5)
-    ax1.legend(loc='upper right')
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(13, 11), sharex=True)
 
-    ax2.plot(t, theta_rugged, 'g-', alpha=0.8, label='Sağ Model (Memory-infused Colored Noise)')
-    ax2.axhline(y=theta_native, color='blue', linestyle='--', label=f'AF3 Yapısal Taban Çizgisi ({theta_native:.2f})')
-    ax2.set_ylabel('Erişilebilirlik Spektrumu ($\\theta_{eff}$)', fontsize=10)
-    ax2.set_title('Ornstein–Uhlenbeck Renkli Gürültüsü Altında Sürekli Konformasyonel Akış', fontsize=12, fontweight='bold')
-    ax2.grid(True, linestyle=':', alpha=0.5)
-    ax2.legend(loc='lower right')
+        ax1.plot(t, A_redirector_dynamic, 'r-', alpha=0.7, label='Olasılıksal Rezidans Kinetiği ($A_{redirector}(t)$)')
+        ax1.set_ylabel('İnhibitör Durumu', fontsize=10)
+        ax1.set_title('Probabilistic Residence Kinetics & Local Concentration Fluctuations', fontsize=12, fontweight='bold')
+        ax1.grid(True, linestyle=':', alpha=0.5)
+        ax1.legend(loc='upper right')
 
-    ax3.plot(t, phi_rugged, 'b-', alpha=0.8, label='Efektif Sinyal Akışı ($\\Phi$)')
-    ax3.set_xlabel('Zaman (ns)', fontsize=11)
-    ax3.set_ylabel('Sinyal Yoğunluğu', fontsize=10)
-    ax3.set_title('Nihai Profil: Probabilistic Accessibility Landscape & Ensemble Redistribution', fontsize=12, fontweight='bold')
-    ax3.grid(True, linestyle=':', alpha=0.5)
-    ax3.legend(loc='upper right')
+        ax2.plot(t, theta_rugged, 'g-', alpha=0.8, label='Sağ Model (Memory-infused Colored Noise)')
+        ax2.axhline(y=theta_native, color='blue', linestyle='--', label=f'AF3 Yapısal Taban Çizgisi ({theta_native:.2f})')
+        ax2.set_ylabel('Erişilebilirlik Spektrumu ($\\theta_{eff}$)', fontsize=10)
+        ax2.set_title('Ornstein–Uhlenbeck Renkli Gürültüsü Altında Sürekli Konformasyonel Akış', fontsize=12, fontweight='bold')
+        ax2.grid(True, linestyle=':', alpha=0.5)
+        ax2.legend(loc='lower right')
 
-    plt.tight_layout()
+        ax3.plot(t, phi_rugged, 'b-', alpha=0.8, label='Efektif Sinyal Akışı ($\\Phi$)')
+        ax3.set_xlabel('Zaman (ns)', fontsize=11)
+        ax3.set_ylabel('Sinyal Yoğunluğu', fontsize=10)
+        ax3.set_title('Nihai Profil: Probabilistic Accessibility Landscape & Ensemble Redistribution', fontsize=12, fontweight='bold')
+        ax3.grid(True, linestyle=':', alpha=0.5)
+        ax3.legend(loc='upper right')
 
-    if not os.path.exists('docs'):
-        os.makedirs('docs')
+        plt.tight_layout()
 
-    plt.savefig(
-        'docs/ensemble_dynamics_v2.png',
-        dpi=300,
-        bbox_inches='tight'
-    )
-    plt.close()
+        if not os.path.exists('docs'):
+            os.makedirs('docs')
+
+        plt.savefig(
+            'docs/ensemble_dynamics_v2.png',
+            dpi=300,
+            bbox_inches='tight'
+        )
+        plt.close()
 
     print(
         "[SIM]",
@@ -191,7 +194,10 @@ class ColoredNoiseLangevinModel:
     """
     def __new__(cls):
         # Pipeline'ı tetikler ve GA'nın beklediği sözlük (dict) çıktısını döndürür
-        return run_langevin_simulation_pipeline(target_equilibrium=-1.8)
+        return run_langevin_simulation_pipeline(
+            target_equilibrium=-1.8,
+            save_plot=True
+        )
 
 # =====================================================================
 # BACKWARD COMPATIBILITY WRAPPER
@@ -199,8 +205,18 @@ class ColoredNoiseLangevinModel:
 
 def solve_sde(*args, **kwargs):
 
+    global _LANGEVIN_CACHE
+
     omega_mut = kwargs.get("omega_mut", 1.0)
     haddock_score = kwargs.get("haddock_score", 0.0)
+
+    key = (
+        round(float(omega_mut), 3),
+        round(float(haddock_score), 2)
+    )
+
+    if key in _LANGEVIN_CACHE:
+        return _LANGEVIN_CACHE[key]
 
     print(
         "[DEBUG]",
@@ -211,11 +227,19 @@ def solve_sde(*args, **kwargs):
     result = run_langevin_simulation_pipeline(
         target_equilibrium=0.5,
         omega_mut=omega_mut,
-        haddock_score=haddock_score
+        haddock_score=haddock_score,
+        save_plot=False
     )
 
     trajectory = result["trajectory"]
 
-    lambda_max = -abs(result["descent_speed"])
+    lambda_max = result["descent_speed"]
 
-    return trajectory, float(lambda_max)
+    output = (
+        trajectory,
+        float(lambda_max)
+    )
+
+    _LANGEVIN_CACHE[key] = output
+
+    return output
