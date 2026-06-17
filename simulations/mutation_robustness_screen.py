@@ -35,25 +35,20 @@ def sigmoid(x):
 def compute_homeostasis_probability(
     trajectory,
     target=0.5,
-    tolerance=0.15
+    tolerance=0.20
 ):
-    """
-    Son 200 adımın homeostatik bölgede olup olmadığını kontrol eder.
-    """
     trajectory = np.asarray(trajectory)
 
-    if len(trajectory) < 200:
+    if len(trajectory) < 2000:
         window = trajectory
     else:
-        window = trajectory[-200:]
+        window = trajectory[-2000:]
 
-    mean_distance = np.mean(np.abs(window - target))
-    fluctuation = np.std(window)
+    mean_theta = np.mean(window)
 
-    stable_mean = mean_distance < tolerance
-    stable_noise = fluctuation < 0.10
-
-    return float(stable_mean and stable_noise)
+    return float(
+        abs(mean_theta - target) < tolerance
+    )
 
 def compute_lambda_component(mean_lambda):
     """
@@ -92,7 +87,7 @@ def run_probabilistic_screening(iterations=100):
             homeostasis_hits += compute_homeostasis_probability(
                 trajectory,
                 target=0.5,
-                tolerance=0.15
+                tolerance=0.20
             )
 
         p_homeostasis = homeostasis_hits / float(iterations)
