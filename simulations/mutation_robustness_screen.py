@@ -16,7 +16,6 @@ MUTATION_MANIFOLD = {
 "haddock_std": TRUE_STD
 },
 
-
 "R681X (Nonsense - Severe)": {
     "evidence": "strong",
     "omega_prior": stats.beta(1, 18),
@@ -32,7 +31,6 @@ MUTATION_MANIFOLD = {
 }
 
 }
-
 def sigmoid(x):
 return 1.0 / (1.0 + np.exp(-x))
 
