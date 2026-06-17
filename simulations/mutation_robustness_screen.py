@@ -16,7 +16,7 @@ MUTATION_MANIFOLD = {
 "haddock_std": TRUE_STD
 },
 
-```
+
 "R681X (Nonsense - Severe)": {
     "evidence": "strong",
     "omega_prior": stats.beta(1, 18),
@@ -30,7 +30,6 @@ MUTATION_MANIFOLD = {
     "haddock_score": TRUE_SCORE * 0.58,
     "haddock_std": TRUE_STD * 1.5
 }
-```
 
 }
 
@@ -46,7 +45,6 @@ tolerance=0.15
 Son 200 adımın homeostatik bölgede olup olmadığını kontrol eder.
 """
 
-```
 trajectory = np.asarray(trajectory)
 
 if len(trajectory) < 200:
@@ -61,7 +59,6 @@ stable_mean = mean_distance < tolerance
 stable_noise = fluctuation < 0.10
 
 return float(stable_mean and stable_noise)
-```
 
 def compute_lambda_component(mean_lambda):
 """
@@ -69,13 +66,10 @@ Negatif Lyapunov = daha stabil
 Pozitif Lyapunov = daha kaotik
 """
 
-```
 return sigmoid(-25.0 * mean_lambda)
-```
 
 def run_probabilistic_screening(iterations=100):
 
-```
 print("🔬 RUNNING: Data-Driven Mutation-Aware Pathology Manifold")
 print("=" * 65)
 
@@ -153,7 +147,6 @@ for mut_name, meta in MUTATION_MANIFOLD.items():
         f"  └─ Phenotypic Dynamical Rescue Index (R): "
         f"{r_score:.4f}"
     )
-```
 
 if **name** == "**main**":
 run_probabilistic_screening()
