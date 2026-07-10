@@ -1,3 +1,4 @@
+print('[+] DDE Simulasyon Motoru Baslatildi...')
 """
 Module: delay_coupled_bifurcation.py
 Description: Resolves discrete History Delay DDE trajectories mapping cell adaptation curves.
@@ -5,6 +6,9 @@ Description: Resolves discrete History Delay DDE trajectories mapping cell adapt
 """
 
 import numpy as np
+import matplotlib
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 
@@ -152,3 +156,5 @@ def run_ga_dde_bridge(rna_sequence, cell_line="Schwannoma", activation_status=Tr
     print(f"[BAŞARILI] DDE Simülasyonu tamamlandı. Grafik kaydedildi: {output_path}")
     return dde_results
 
+
+print('[+] Simulasyon tamamlandi, grafikler yazildi!')

@@ -1,0 +1,22 @@
+{
+    "provenance_metadata": {
+        "framework_layer": "Multi-Scale Translational Mapping Bridge",
+        "modulating_vector": "Biomimetic Attenuation Engine (TRL-2)",
+        "modeling_approach": "Distribution-Aware Phenomenological Architecture",
+        "academic_definition": "A phenomenological bridge translating structural interaction metrics into systems-level signaling attenuation coefficients under idealized assumptions."
+    },
+    "upstream_structural_stochastic_inputs": {
+        "nominal_distance_angstrom": 2.85,
+        "empirical_contacts_count": 45,
+        "monte_carlo_ensembles_computed": 1000,
+        "explicitly_calculated_hill_theta": null
+    },
+    "downstream_systems_outputs": {
+        "mean_fractional_occupancy_probability": 0.4611464492739267,
+        "derived_normalized_weights": {
+            "KRAS_weight": 0.35847164756957706,
+            "pERK_weight": 0.44808955946197115,
+            "ROS_weight": 0.19343879296845146
+        }
+    }
+}
