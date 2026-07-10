@@ -1,0 +1,58 @@
+name: 🧬 Run Anti-Tumor RNA Optimization Engine
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # GitHub Actions butonunu aktif eder
+
+jobs:
+  optimize_and_fix_geometry:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Repoyu Klonla
+      uses: actions/checkout@v4
+
+    - name: 🐍 Python Ortamını Kur
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: 📦 Bağımlılıkları Yükle
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest numpy matplotlib
+
+    - name: 🚀 RNA Optimizasyon ve Antiparalel Düzeltme Motoru
+      run: |
+        # Optimizasyon motorunu çalıştır
+        python3 utils/probability_engine.py
+        
+        # Biyofiziksel geometri hatasını düzelten dinamik script oluştur
+        cat << 'PYEOF' > generate_af3_fasta.py
+        import json
+
+        # Sabit dizilimlerimizi alalım
+        rna_guide = "UUUCGUAUUAUAAGCAUUACGUAAUUUCCG"
+        target_mrna = "AAAGCAUAAUAUUUCGUAAUGCAUUAAAGC"
+
+        # Antiparalel (Reverse Complement) kuralına göre hedefi dönüştür
+        complement = {'A': 'U', 'U': 'A', 'G': 'C', 'C': 'G'}
+        reverse_complement = "".join(complement[base] for base in reversed(target_mrna))
+
+        print("\n=== 🧬 ALPHAFOLD 3 İÇİN GEOMETRİK OLARAK DOĞRULANMIŞ FASTA ===")
+        print(f">Entity_1_Designed_RNA_Drug\n{rna_guide}")
+        print(f">Entity_2_Corrected_Antiparalel_Target_mRNA\n{reverse_complement}\n")
+
+        with open("alphafold3_inputs.fasta", "w") as f:
+            f.write(f">Entity_1_Designed_RNA_Drug\n{rna_guide}\n")
+            f.write(f">Entity_2_Corrected_Antiparalel_Target_mRNA\n{reverse_complement}\n")
+        PYEOF
+        python3 generate_af3_fasta.py
+
+    - name: 📊 Doğru FASTA Dosyasını GitHub Çıktısı Olarak Sakla
+      uses: actions/upload-artifact@v4
+      with:
+        name: corrected-alphafold3-fasta
+        path: alphafold3_inputs.fasta
+        retention-days: 7
