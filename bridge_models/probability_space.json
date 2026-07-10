@@ -1,0 +1,7 @@
+{
+    "total_scenarios": 8890,
+    "mean_occupancy": 0.4736518062152738,
+    "max_probability": 0.6671538974676067,
+    "min_probability": 0.2951132370575203,
+    "target_suppression_success_rate_percent": 68.30146231721035
+}
