@@ -1,7 +1,7 @@
 def score_candidate(rna_sequence, target_mrna, selected_cif=None, config=None, transcriptome=None, core_modules=True, *args, **kwargs):
     """
-    Testlerin gonderdigi 6 parametreli dizilimi tam olarak yakalayan
-    ve dogru dizindeki dosyayi hedef alan guncel fonksiyon.
+    Testlerin gonderdigi tum parametre dizilimini (6 positional ve keyword args)
+    eksiksiz kabul eden ve yutan guncel skorlama motoru.
     """
     if config:
         min_len = config.get("min_len", 10)
