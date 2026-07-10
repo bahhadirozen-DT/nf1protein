@@ -1,7 +1,9 @@
 {
     "total_scenarios": 8890,
-    "mean_occupancy": 0.4736518062152738,
-    "max_probability": 0.6671538974676067,
-    "min_probability": 0.2951132370575203,
-    "target_suppression_success_rate_percent": 68.30146231721035
+    "optimized_mean_occupancy": 0.5135579849538284,
+    "max_probability": 0.6349675505955795,
+    "min_probability": 0.3959528887258763,
+    "target_suppression_success_rate_percent": 97.07536557930258,
+    "optimization_iterations": 5,
+    "noise_damping_factor": 0.03333333333333333
 }
